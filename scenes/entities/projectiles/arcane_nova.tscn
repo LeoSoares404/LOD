@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/entities/projectiles/arcane_nova.gd" id="1_nova"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="2_glow"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_nova"]
+radius = 66.0
+
+[node name="ArcaneNova" type="Area2D"]
+collision_layer = 0
+collision_mask = 16
+script = ExtResource("1_nova")
+damage = 5
+knockback_force = 220.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_nova")
+
+[node name="Ring" type="Sprite2D" parent="."]
+modulate = Color(0.5, 2.6, 2.4, 0.9)
+texture = ExtResource("2_glow")
+
+[node name="Light" type="PointLight2D" parent="."]
+color = Color(0.5, 1, 0.95, 1)
+energy = 1.2
+texture = ExtResource("2_glow")
+texture_scale = 0.7

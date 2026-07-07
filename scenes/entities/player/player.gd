@@ -5,15 +5,25 @@ const SPEED := 90.0  # px/s (~5.6 tiles/s)
 const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "vibrar"
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
-const BOLT_COOLDOWN := 0.4  # s
-const BOLT_MANA_COST := 5
-const CAST_OFFSET := Vector2(0, -12)  # projétil nasce no peito, não nos pés
+const NOVA_SCENE := preload("res://scenes/entities/projectiles/arcane_nova.tscn")
+const CAST_OFFSET := Vector2(0, -12)  # projéteis nascem no peito, não nos pés
+
+# slots: 0=Q bolt · 1=W nova · 2=E dash · 3=R tempestade
+const SKILL_COOLDOWN := [0.4, 4.5, 2.5, 12.0]
+const SKILL_MANA := [5, 12, 6, 22]
+const BARRAGE_COUNT := 12  # projéteis da Tempestade Arcana (R)
 
 const MAX_MANA := 30
 const MANA_REGEN := 4.0  # por segundo
 
-var _bolt_cooldown := 0.0
+# dash (E)
+const DASH_SPEED := 760.0
+const DASH_TIME := 0.13
+
+var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
+var _dash_time_left := 0.0
+var _dash_dir := Vector2.ZERO
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -60,11 +70,23 @@ func _on_died() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _bolt_cooldown > 0.0:
-		_bolt_cooldown -= delta
+	for i in 4:
+		if _cooldowns[i] > 0.0:
+			_cooldowns[i] -= delta
 	_regen_mana(delta)
-	if Input.is_action_just_pressed("skill_1") and _bolt_cooldown <= 0.0 and _mana >= BOLT_MANA_COST:
-		_cast_bolt()
+
+	# dash em andamento sobrepõe o resto do movimento
+	if _dash_time_left > 0.0:
+		_dash_time_left -= delta
+		velocity = _dash_dir * DASH_SPEED
+		move_and_slide()
+		if _dash_time_left <= 0.0:
+			_end_dash()
+		return
+
+	for i in 4:
+		if Input.is_action_just_pressed("skill_%d" % (i + 1)) and _can_cast(i):
+			_cast(i)
 
 	# segurar o botão direito = seguir o cursor (estilo Diablo)
 	if Input.is_action_pressed("move_click"):
@@ -108,14 +130,57 @@ func _regen_mana(delta: float) -> void:
 		EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
 
 
-func _cast_bolt() -> void:
-	_bolt_cooldown = BOLT_COOLDOWN
-	_mana -= BOLT_MANA_COST
+func _can_cast(slot: int) -> bool:
+	return _cooldowns[slot] <= 0.0 and _mana >= SKILL_MANA[slot]
+
+
+func _cast(slot: int) -> void:
+	_cooldowns[slot] = SKILL_COOLDOWN[slot]
+	_mana -= SKILL_MANA[slot]
 	EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
-	EventBus.skill_cooldown_started.emit(0, BOLT_COOLDOWN)
+	EventBus.skill_cooldown_started.emit(slot, SKILL_COOLDOWN[slot])
+	EventBus.skill_cast.emit(slot, null)
+	match slot:
+		0: _cast_bolt()
+		1: _cast_nova()
+		2: _cast_dash()
+		3: _cast_barrage()
+
+
+func _cast_bolt() -> void:
 	var origin := global_position + CAST_OFFSET
 	var bolt: MagicBolt = BOLT_SCENE.instantiate()
 	bolt.direction = (get_global_mouse_position() - origin).normalized()
 	bolt.position = origin
 	get_tree().current_scene.add_child(bolt)
-	EventBus.skill_cast.emit(0, null)
+
+
+func _cast_nova() -> void:
+	var nova: Node2D = NOVA_SCENE.instantiate()
+	nova.position = global_position + Vector2(0, -8)
+	get_tree().current_scene.add_child(nova)
+
+
+func _cast_dash() -> void:
+	_dash_dir = (get_global_mouse_position() - global_position).normalized()
+	if _dash_dir == Vector2.ZERO:
+		_dash_dir = Vector2.RIGHT
+	_dash_time_left = DASH_TIME
+	_moving = false
+	hurtbox.set_deferred("monitorable", false)  # i-frames durante o dash
+	modulate = Color(0.7, 1.4, 1.6, 0.7)
+
+
+func _end_dash() -> void:
+	hurtbox.set_deferred("monitorable", true)
+	modulate = Color.WHITE
+
+
+func _cast_barrage() -> void:
+	var origin := global_position + CAST_OFFSET
+	for i in BARRAGE_COUNT:
+		var dir := Vector2.RIGHT.rotated(TAU * i / BARRAGE_COUNT)
+		var bolt: MagicBolt = BOLT_SCENE.instantiate()
+		bolt.direction = dir
+		bolt.position = origin
+		get_tree().current_scene.add_child(bolt)
