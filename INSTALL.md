@@ -1,4 +1,4 @@
-# OverRev — Ambiente de Desenvolvimento (Windows)
+# LOD — Ambiente de Desenvolvimento (Windows)
 
 Tudo o que precisa ser instalado para desenvolver o jogo. Marque conforme instalar.
 

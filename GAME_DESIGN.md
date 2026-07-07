@@ -1,4 +1,4 @@
-# OverRev — Plano de Desenvolvimento
+# LOD — Plano de Desenvolvimento
 
 **Gênero:** ARPG top-down pixel-art (mistura de Diablo + League of Legends)
 **Engine:** Godot 4.x (renderizador Forward+ ou Mobile)

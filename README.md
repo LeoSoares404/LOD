@@ -1,4 +1,4 @@
-# OverRev
+# LOD
 
 Um **ARPG top-down pixel-art (16-bit)** — mistura de **Diablo** (loot, hordas, fantasia sombria) com **League of Legends** (habilidades com cooldown, orbes de vida/mana, combate baseado em skills).
 
