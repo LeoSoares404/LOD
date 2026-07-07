@@ -145,7 +145,19 @@ Regra de ouro do "game juice": **todo hit precisa de** flash + partícula + som 
 
 ---
 
-## 6. Riscos / decisões em aberto
+## 6. Mundo — mapa grande de exploração
+
+✅ DECIDIDO: o mundo é um **mapa grande contínuo de exploração, com várias zonas**
+(ex.: cripta, floresta sombria, ruínas...), não fases separadas.
+
+- A **cripta atual é a primeira zona** / protótipo — o layout dela vai crescer.
+- Cada zona tem paleta e tiles próprios, mas todas no mesmo TileMap/mundo.
+- Implicações técnicas (tratar quando o mapa crescer, não antes):
+  - Limites da câmera devem vir do mapa, não fixos no player.
+  - Spawners de inimigos por zona (waves locais, não globais).
+  - Se a performance sentir, pintar tiles por chunk conforme o player anda.
+
+## 7. Riscos / decisões em aberto
 
 - **Controle:** ✅ decidido em M0 — click-to-move (botão direito) + skills nas teclas QWER/1-4.
 - **Netcode:** singleplayer primeiro. Multiplayer (LoL-like) é 10x o trabalho — deixar como fase futura, mas já desacoplar via `EventBus`.
