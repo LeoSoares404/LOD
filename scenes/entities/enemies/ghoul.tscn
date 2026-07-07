@@ -1,0 +1,69 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scenes/entities/enemies/ghoul.gd" id="1_ghoul"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ghoul.png" id="2_ghoultex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="3_glow"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
+[ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="5_hurtbox"]
+[ext_resource type="Script" path="res://scripts/components/hitbox_component.gd" id="6_hitbox"]
+[ext_resource type="Script" path="res://scripts/components/health_bar.gd" id="7_bar"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(12, 18)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hit"]
+radius = 7.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 5.0
+
+[node name="Ghoul" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_ghoul")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("4_health")
+max_health = 6
+
+[node name="Shadow" type="Sprite2D" parent="."]
+modulate = Color(0, 0, 0, 0.45)
+position = Vector2(0, -2)
+scale = Vector2(0.09, 0.045)
+texture = ExtResource("3_glow")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+position = Vector2(0, -12)
+texture = ExtResource("2_ghoultex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -5)
+shape = SubResource("CircleShape2D_body")
+
+[node name="Hurtbox" type="Area2D" parent="." node_paths=PackedStringArray("health")]
+collision_layer = 16
+collision_mask = 0
+monitoring = false
+script = ExtResource("5_hurtbox")
+health = NodePath("../HealthComponent")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -11)
+shape = SubResource("RectangleShape2D_hurt")
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 8
+script = ExtResource("6_hitbox")
+damage = 2
+tick_interval = 0.8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_hit")
+
+[node name="HealthBar" type="Node2D" parent="." node_paths=PackedStringArray("health")]
+position = Vector2(0, -26)
+script = ExtResource("7_bar")
+health = NodePath("../HealthComponent")
