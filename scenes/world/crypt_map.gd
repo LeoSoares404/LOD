@@ -1,135 +1,96 @@
 extends Node2D
-## Cripta — pinta o TileMapLayer proceduralmente com o tileset placeholder.
-## Visão 3/4: profundidade vem de penhasco alto com borda irregular, sombra na
-## base e props ALTOS (colunas/obeliscos) com Y-sort — o player passa atrás.
-## Colisão de paredes/penhascos vem do TileSet; props têm corpo próprio na base.
+## Cripta — chão em arte HD (imagem) + emblema de runas no centro.
+## Boundaries por paredes de colisão invisíveis nas bordas.
+## Props altos (colunas/obeliscos) com Y-sort — o player passa atrás.
 
-const TILE := 16
-const MAP_W := 60  # tiles → 960 px
-const MAP_H := 34  # tiles → 544 px
+const MAP_W := 960
+const MAP_H := 544
+const WALL := 16  # espessura das paredes de colisão invisíveis
 
-# coordenadas no atlas (crypt_tiles.png)
-const FLOOR_A := Vector2i(0, 0)
-const FLOOR_B := Vector2i(1, 0)
-const FLOOR_CRACKED := Vector2i(2, 0)
-const FLOOR_SPECKLED := Vector2i(3, 0)
-const SLAB := Vector2i(4, 0)
-const RUBBLE := Vector2i(5, 0)
-const WALL_FACE := Vector2i(0, 1)
-const WALL_TOP := Vector2i(1, 1)
-const CLIFF_UPPER := Vector2i(2, 1)
-const CLIFF_LOWER := Vector2i(3, 1)
-const PLATEAU_RIM := Vector2i(4, 1)
-const STAIRS := Vector2i(5, 1)
-const SHADOW_FLOOR := Vector2i(6, 1)
-const PLATEAU_FLOOR := Vector2i(7, 1)
-const SLAB_MIX := Vector2i(0, 2)  # dithering laje↔chão (borda suave da praça)
-
-# geografia do desnível
-const RIM_BASE_Y := 9            # linha média da borda do platô
-const CLIFF_HEIGHT := 3          # tiles de face de penhasco
-const STAIRS_X_RANGE := [28, 31] # colunas da escadaria (inclusive)
-
-const SLAB_CENTER := Vector2i(30, 22)  # praça de lajes claras (spawn do player)
-const SLAB_RADIUS := 5.0  # tiles
-
+const FLOOR_TEX := preload("res://image/chao2.jpg")
+const FLOOR_TILE_WORLD := 120.0  # tamanho de UMA cópia da textura em px de mundo
+const EMBLEM_TEX := preload("res://assets/sprites/props/emblem.png")  # fundo já recortado
 const COLUMN_TEX := preload("res://assets/sprites/props/column.png")
 const OBELISK_TEX := preload("res://assets/sprites/props/obelisk.png")
+const GLOW_TEX := preload("res://assets/sprites/props/glow_gradient.tres")
 
-# posições em px do PONTO DA BASE de cada prop (Y-sort ordena por ele)
+const EMBLEM_CENTER := Vector2(500, 272)
+const EMBLEM_DIAMETER := 175.0  # altura-alvo do emblema em px de mundo
+
+# posições em px do PONTO DA BASE de cada prop (Y-sort ordena por ela)
 const COLUMNS: Array[Vector2] = [
-	Vector2(424, 260), Vector2(536, 260),  # flanqueando o pé da escada
-	Vector2(208, 330), Vector2(752, 330),
-	Vector2(180, 480), Vector2(780, 480),
+	Vector2(150, 170), Vector2(810, 170),
+	Vector2(150, 470), Vector2(810, 470),
 ]
 const OBELISKS: Array[Vector2] = [
-	Vector2(432, 120), Vector2(528, 120),  # flanqueando a runa, no platô
-	Vector2(144, 110), Vector2(816, 110),
+	Vector2(330, 110), Vector2(630, 110),
 ]
-
-@onready var tiles: TileMapLayer = %Tiles
-
-var _rim: Array[int] = []
 
 
 func _ready() -> void:
-	_build_rim_line()
-	_paint_tiles()
+	_add_floor()
+	_add_emblem()
+	_add_borders()
 	_spawn_props()
 
 
-## Borda do penhasco irregular (noise 1D suavizado), reta só na escadaria.
-func _build_rim_line() -> void:
-	var noise := FastNoiseLite.new()
-	noise.seed = 7
-	noise.frequency = 0.09
-	_rim.resize(MAP_W)
-	for x in MAP_W:
-		# amplitude curta (±2): sem tile de "quina" p/ face lateral, recorte fundo parece glitch
-		_rim[x] = clampi(RIM_BASE_Y + roundi(noise.get_noise_1d(float(x)) * 2.5), 8, 11)
-	for x in range(STAIRS_X_RANGE[0] - 1, STAIRS_X_RANGE[1] + 2):
-		_rim[x] = RIM_BASE_Y
-	for x in range(1, MAP_W):  # limita degrau entre colunas vizinhas a 1 tile
-		_rim[x] = clampi(_rim[x], _rim[x - 1] - 1, _rim[x - 1] + 1)
+func _add_floor() -> void:
+	# textura ladrilhada: repete pelo mapa (region maior que a textura + repeat)
+	var floor_spr := Sprite2D.new()
+	floor_spr.texture = FLOOR_TEX
+	floor_spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # reduz shimmer ao mover
+	floor_spr.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	floor_spr.centered = false
+	floor_spr.region_enabled = true
+	var k := FLOOR_TILE_WORLD / FLOOR_TEX.get_width()
+	floor_spr.scale = Vector2(k, k)
+	floor_spr.region_rect = Rect2(0, 0, MAP_W / k, MAP_H / k)
+	floor_spr.position = Vector2.ZERO
+	floor_spr.z_index = -20
+	add_child(floor_spr)
 
 
-func _paint_tiles() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	var patches := FastNoiseLite.new()  # manchas orgânicas no chão
-	patches.seed = 21
-	patches.frequency = 0.13
+func _add_emblem() -> void:
+	var emblem := Sprite2D.new()
+	emblem.texture = EMBLEM_TEX
+	emblem.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	emblem.position = EMBLEM_CENTER
+	var s := EMBLEM_DIAMETER / EMBLEM_TEX.get_height()
+	emblem.scale = Vector2(s, s)
+	emblem.z_index = -19  # acima do chão, abaixo dos personagens
+	add_child(emblem)
 
-	for y in MAP_H:
-		for x in MAP_W:
-			tiles.set_cell(Vector2i(x, y), 0, _pick_cell(rng, patches, x, y))
+	# glow ciano suave e pulsante sob o emblema
+	var light := PointLight2D.new()
+	light.texture = GLOW_TEX
+	light.color = Color(0.4, 1.0, 0.9)
+	light.energy = 0.5
+	light.texture_scale = 1.1
+	light.position = EMBLEM_CENTER
+	add_child(light)
+	var tw := create_tween().set_loops()
+	tw.tween_property(light, "energy", 0.9, 2.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(light, "energy", 0.5, 2.0).set_trans(Tween.TRANS_SINE)
 
-	# bordas do mapa
-	for x in MAP_W:
-		tiles.set_cell(Vector2i(x, 0), 0, WALL_TOP)
-		tiles.set_cell(Vector2i(x, 1), 0, WALL_FACE)
-		tiles.set_cell(Vector2i(x, MAP_H - 1), 0, WALL_TOP)
-	for y in MAP_H:
-		tiles.set_cell(Vector2i(0, y), 0, WALL_TOP)
-		tiles.set_cell(Vector2i(MAP_W - 1, y), 0, WALL_TOP)
+
+func _add_borders() -> void:
+	_add_wall(Rect2(0, 0, MAP_W, WALL))
+	_add_wall(Rect2(0, MAP_H - WALL, MAP_W, WALL))
+	_add_wall(Rect2(0, 0, WALL, MAP_H))
+	_add_wall(Rect2(MAP_W - WALL, 0, WALL, MAP_H))
 
 
-func _pick_cell(rng: RandomNumberGenerator, patches: FastNoiseLite, x: int, y: int) -> Vector2i:
-	var rim: int = _rim[x]
-	var on_stairs: bool = x >= STAIRS_X_RANGE[0] and x <= STAIRS_X_RANGE[1]
-
-	# faixa do desnível: borda, faces do penhasco, sombra na base
-	if y == rim:
-		return STAIRS if on_stairs else PLATEAU_RIM
-	if y > rim and y <= rim + CLIFF_HEIGHT:
-		if on_stairs:
-			return STAIRS
-		return CLIFF_LOWER if y == rim + CLIFF_HEIGHT else CLIFF_UPPER
-	if y == rim + CLIFF_HEIGHT + 1:
-		return STAIRS if on_stairs else SHADOW_FLOOR
-
-	# nível de cima (platô)
-	if y < rim:
-		if rng.randf() < 0.05:
-			return FLOOR_CRACKED
-		return PLATEAU_FLOOR
-
-	# nível de baixo: praça de lajes + manchas orgânicas de desgaste
-	var cell := Vector2i(x, y)
-	var slab_dist := Vector2(cell - SLAB_CENTER).length()
-	if slab_dist <= SLAB_RADIUS:
-		return SLAB if slab_dist <= SLAB_RADIUS - 1.2 else SLAB_MIX
-	var roll := rng.randf()
-	if roll < 0.04:
-		return FLOOR_CRACKED
-	if roll < 0.07:
-		return RUBBLE
-	var n := patches.get_noise_2d(float(x), float(y))
-	if n > 0.22:
-		return FLOOR_B
-	if n < -0.3:
-		return FLOOR_SPECKLED
-	return FLOOR_A
+func _add_wall(rect: Rect2) -> void:
+	var body := StaticBody2D.new()
+	body.collision_layer = 1  # layer "world"
+	body.collision_mask = 0
+	var shape := CollisionShape2D.new()
+	var rs := RectangleShape2D.new()
+	rs.size = rect.size
+	shape.shape = rs
+	shape.position = rect.position + rect.size / 2.0
+	body.add_child(shape)
+	add_child(body)
 
 
 func _spawn_props() -> void:
@@ -148,9 +109,8 @@ func _add_prop(tex: Texture2D, pos: Vector2, glow := false) -> void:
 	spr.offset = Vector2(-tex.get_width() / 2.0, -float(tex.get_height()))
 	spr.position = pos
 
-	# sombra elíptica na base — vende o "objeto de pé no chão"
 	var shadow := Sprite2D.new()
-	shadow.texture = preload("res://assets/sprites/props/glow_gradient.tres")
+	shadow.texture = GLOW_TEX
 	shadow.modulate = Color(0, 0, 0, 0.45)
 	shadow.scale = Vector2(0.11, 0.05)
 	shadow.position = Vector2(0, -2)
@@ -158,7 +118,7 @@ func _add_prop(tex: Texture2D, pos: Vector2, glow := false) -> void:
 	spr.add_child(shadow)
 
 	var body := StaticBody2D.new()
-	body.collision_layer = 1  # layer "world"
+	body.collision_layer = 1
 	body.collision_mask = 0
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
@@ -170,7 +130,7 @@ func _add_prop(tex: Texture2D, pos: Vector2, glow := false) -> void:
 
 	if glow:
 		var light := PointLight2D.new()
-		light.texture = preload("res://assets/sprites/props/glow_gradient.tres")
+		light.texture = GLOW_TEX
 		light.color = Color(0.55, 1.0, 0.92)
 		light.energy = 0.7
 		light.texture_scale = 0.6

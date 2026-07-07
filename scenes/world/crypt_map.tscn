@@ -1,56 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scenes/world/crypt_map.gd" id="1_map"]
-[ext_resource type="TileSet" path="res://assets/sprites/tiles/crypt_tileset.tres" id="2_tileset"]
-
-[sub_resource type="Gradient" id="Gradient_runelight"]
-offsets = PackedFloat32Array(0, 1)
-colors = PackedColorArray(1, 1, 1, 0.85, 1, 1, 1, 0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_runelight"]
-gradient = SubResource("Gradient_runelight")
-width = 256
-height = 256
-fill = 1
-fill_from = Vector2(0.5, 0.5)
-fill_to = Vector2(0.5, 0)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rune"]
-size = Vector2(32, 32)
 
 [node name="CryptMap" type="Node2D"]
 y_sort_enabled = true
 script = ExtResource("1_map")
-
-[node name="Tiles" type="TileMapLayer" parent="."]
-unique_name_in_owner = true
-tile_set = ExtResource("2_tileset")
-
-[node name="Rune" type="Node2D" parent="."]
-position = Vector2(480, 96)
-
-[node name="Stone" type="Polygon2D" parent="Rune"]
-color = Color(0.055, 0.17, 0.19, 1)
-polygon = PackedVector2Array(-16, -26, 16, -26, 16, 6, -16, 6)
-
-[node name="GlyphV" type="Polygon2D" parent="Rune"]
-color = Color(0.5, 3.2, 2.8, 1)
-polygon = PackedVector2Array(-3, -22, 3, -22, 3, 0, -3, 0)
-
-[node name="GlyphH" type="Polygon2D" parent="Rune"]
-color = Color(0.5, 3.2, 2.8, 1)
-polygon = PackedVector2Array(-8, -14, 8, -14, 8, -10, -8, -10)
-
-[node name="Light" type="PointLight2D" parent="Rune"]
-position = Vector2(0, -10)
-color = Color(0.55, 1, 0.92, 1)
-energy = 1.0
-texture = SubResource("GradientTexture2D_runelight")
-texture_scale = 1.2
-
-[node name="Body" type="StaticBody2D" parent="Rune"]
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Rune/Body"]
-position = Vector2(0, -10)
-shape = SubResource("RectangleShape2D_rune")
