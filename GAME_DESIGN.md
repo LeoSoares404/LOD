@@ -77,8 +77,8 @@ Isso deixa criar 50 skills/itens sem escrever 50 scripts.
 ### M0 — Fundação (prototype jogável)
 - [ ] Projeto Godot + estrutura de pastas + autoloads vazios.
 - [ ] TileMap de um mapa de teste.
-- [ ] Player (`CharacterBody2D`) com movimento.
-  - Decisão: **click-to-move** (Diablo) via `NavigationAgent2D`, ou WASD? → começar com WASD (mais simples), adicionar click-to-move depois.
+- [x] Player (`CharacterBody2D`) com movimento.
+  - ✅ DECIDIDO: **click-to-move no botão direito** (Diablo/LoL) — segurar segue o cursor. Teclas ficam reservadas para skills (QWER + 1-4). Por ora movimento direto ao ponto (`move_and_slide` desliza nos obstáculos); `NavigationAgent2D` (desvio de obstáculos) entra junto com o pathfinding dos inimigos no M1.
 - [ ] `Camera2D` seguindo o player com smoothing + limites.
 
 ### M1 — Combate base
@@ -147,6 +147,6 @@ Regra de ouro do "game juice": **todo hit precisa de** flash + partícula + som 
 
 ## 6. Riscos / decisões em aberto
 
-- **Controle:** WASD vs click-to-move (Diablo) vs híbrido → decidir em M0.
+- **Controle:** ✅ decidido em M0 — click-to-move (botão direito) + skills nas teclas QWER/1-4.
 - **Netcode:** singleplayer primeiro. Multiplayer (LoL-like) é 10x o trabalho — deixar como fase futura, mas já desacoplar via `EventBus`.
 - **Escopo:** ARPG é gênero grande. Meta realista do primeiro marco: **um mapa, um player, 2 inimigos, 3 skills, loot básico** = vertical slice jogável.

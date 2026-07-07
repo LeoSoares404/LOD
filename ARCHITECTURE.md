@@ -63,7 +63,7 @@ res://
 
 ### Input actions (nomeadas no project.godot)
 
-`move_up/down/left/right` (WASD) · `skill_1..4` (teclas 1-4) · `attack` (botão esq. do mouse)
+`move_click` (botão dir. do mouse — click-to-move) · `skill_1..4` (QWER e 1-4) · `attack` (botão esq. do mouse)
 
 O **código nunca referencia tecla física** — sempre `Input.is_action_pressed("move_up")`.
 Assim, trocar o esquema de controle (ou adicionar gamepad) não toca em nenhum script.
