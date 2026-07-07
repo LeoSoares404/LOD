@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
 [ext_resource type="Shader" path="res://assets/shaders/orb.gdshader" id="2_orb"]
@@ -46,6 +46,18 @@ font_size = 8
 font_color = Color(0.55, 0.62, 0.62, 0.5)
 shadow_size = 1
 shadow_color = Color(0, 0, 0, 0.8)
+
+[sub_resource type="LabelSettings" id="LabelSettings_banner"]
+font_size = 28
+font_color = Color(1, 1, 1, 1)
+shadow_size = 3
+shadow_color = Color(0, 0, 0, 0.9)
+
+[sub_resource type="LabelSettings" id="LabelSettings_counter"]
+font_size = 11
+font_color = Color(0.8, 0.9, 0.9, 0.85)
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0.85)
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
@@ -155,3 +167,22 @@ offset_right = 24.0
 offset_bottom = 26.0
 text = "R"
 label_settings = SubResource("LabelSettings_key_dim")
+
+[node name="WaveCounter" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 260.0
+offset_top = 6.0
+offset_right = 380.0
+offset_bottom = 24.0
+horizontal_alignment = 1
+label_settings = SubResource("LabelSettings_counter")
+
+[node name="WaveBanner" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 120.0
+offset_top = 120.0
+offset_right = 520.0
+offset_bottom = 170.0
+horizontal_alignment = 1
+vertical_alignment = 1
+label_settings = SubResource("LabelSettings_banner")

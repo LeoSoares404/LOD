@@ -6,6 +6,8 @@ const SLOT_COUNT := 4
 
 @onready var health_orb: ColorRect = %HealthOrb
 @onready var mana_orb: ColorRect = %ManaOrb
+@onready var banner: Label = %WaveBanner
+@onready var counter: Label = %WaveCounter
 
 var _cd_remaining: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var _cd_total: Array[float] = [1.0, 1.0, 1.0, 1.0]
@@ -18,6 +20,9 @@ func _ready() -> void:
 	EventBus.player_health_changed.connect(_on_health_changed)
 	EventBus.player_mana_changed.connect(_on_mana_changed)
 	EventBus.skill_cooldown_started.connect(_on_cooldown_started)
+	EventBus.wave_started.connect(_on_wave_started)
+	EventBus.victory.connect(_on_victory)
+	banner.modulate.a = 0.0
 
 
 func _process(delta: float) -> void:
@@ -43,3 +48,27 @@ func _on_cooldown_started(slot: int, duration: float) -> void:
 		return
 	_cd_total[slot] = maxf(duration, 0.01)
 	_cd_remaining[slot] = duration
+
+
+func _on_wave_started(wave: int, is_boss: bool) -> void:
+	if is_boss:
+		counter.text = "CHEFE"
+		_flash_banner("⚠ CHEFE ⚠", Color(1.0, 0.4, 0.3))
+	else:
+		counter.text = "Rodada %d" % wave
+		_flash_banner("RODADA %d" % wave, Color(0.6, 1.0, 0.95))
+
+
+func _on_victory() -> void:
+	counter.text = ""
+	_flash_banner("VITÓRIA!", Color(1.0, 0.9, 0.4), 5.0)
+
+
+func _flash_banner(text: String, color: Color, hold := 1.6) -> void:
+	banner.text = text
+	banner.modulate = color
+	banner.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(banner, "modulate:a", 1.0, 0.3)
+	tw.tween_interval(hold)
+	tw.tween_property(banner, "modulate:a", 0.0, 0.6)

@@ -12,4 +12,5 @@ signal xp_gained(amount: int)
 signal item_dropped(item: Resource, position: Vector2)
 signal item_picked_up(item: Resource)
 signal skill_cast(slot: int, skill: Resource)
-signal wave_started(wave_number: int)
+signal wave_started(wave_number: int, is_boss: bool)
+signal victory

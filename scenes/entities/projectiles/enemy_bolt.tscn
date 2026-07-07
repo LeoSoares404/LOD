@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/entities/projectiles/enemy_bolt.gd" id="1_bolt"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="2_glow"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bolt"]
+radius = 5.0
+
+[node name="EnemyBolt" type="Area2D"]
+collision_layer = 0
+collision_mask = 9
+script = ExtResource("1_bolt")
+damage = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_bolt")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+modulate = Color(2.6, 0.5, 0.3, 1)
+scale = Vector2(0.11, 0.07)
+texture = ExtResource("2_glow")
+
+[node name="Light" type="PointLight2D" parent="."]
+color = Color(1, 0.5, 0.3, 1)
+energy = 0.8
+texture = ExtResource("2_glow")
+texture_scale = 0.4
