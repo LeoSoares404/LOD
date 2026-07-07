@@ -6,9 +6,14 @@ const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
 const BOLT_COOLDOWN := 0.4  # s
+const BOLT_MANA_COST := 5
 const CAST_OFFSET := Vector2(0, -12)  # projétil nasce no peito, não nos pés
 
+const MAX_MANA := 30
+const MANA_REGEN := 4.0  # por segundo
+
 var _bolt_cooldown := 0.0
+var _mana := float(MAX_MANA)
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -30,7 +35,16 @@ var _moving := false
 
 func _ready() -> void:
 	health.died.connect(_on_died)
+	health.health_changed.connect(
+		func(c: int, m: int) -> void: EventBus.player_health_changed.emit(c, m)
+	)
 	hurtbox.hit_received.connect(_on_hit_received)
+	_emit_initial_status.call_deferred()  # deferido: garante que a HUD já conectou
+
+
+func _emit_initial_status() -> void:
+	EventBus.player_health_changed.emit(health.health, health.max_health)
+	EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
 
 
 func _on_hit_received(_hitbox: HitboxComponent) -> void:
@@ -48,7 +62,8 @@ func _on_died() -> void:
 func _physics_process(delta: float) -> void:
 	if _bolt_cooldown > 0.0:
 		_bolt_cooldown -= delta
-	if Input.is_action_just_pressed("skill_1") and _bolt_cooldown <= 0.0:
+	_regen_mana(delta)
+	if Input.is_action_just_pressed("skill_1") and _bolt_cooldown <= 0.0 and _mana >= BOLT_MANA_COST:
 		_cast_bolt()
 
 	# segurar o botão direito = seguir o cursor (estilo Diablo)
@@ -84,8 +99,20 @@ func _update_animation(delta: float) -> void:
 	_sprite.frame = _facing_row * 5 + col
 
 
+func _regen_mana(delta: float) -> void:
+	if _mana >= MAX_MANA:
+		return
+	var before := int(_mana)
+	_mana = minf(_mana + MANA_REGEN * delta, float(MAX_MANA))
+	if int(_mana) != before:
+		EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
+
+
 func _cast_bolt() -> void:
 	_bolt_cooldown = BOLT_COOLDOWN
+	_mana -= BOLT_MANA_COST
+	EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
+	EventBus.skill_cooldown_started.emit(0, BOLT_COOLDOWN)
 	var origin := global_position + CAST_OFFSET
 	var bolt: MagicBolt = BOLT_SCENE.instantiate()
 	bolt.direction = (get_global_mouse_position() - origin).normalized()

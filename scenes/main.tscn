@@ -1,36 +1,37 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://bcma8o84bciwp"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/crypt_map.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/entities/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/entities/enemies/ghoul.tscn" id="3_ghoul"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 3
 glow_enabled = true
 glow_intensity = 0.7
 glow_bloom = 0.05
-glow_blend_mode = 1
-glow_hdr_threshold = 1.0
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=733408634]
 y_sort_enabled = true
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1545608159]
 environment = SubResource("Environment_main")
 
-[node name="CanvasModulate" type="CanvasModulate" parent="."]
+[node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=1732653198]
 color = Color(0.52, 0.66, 0.68, 1)
 
-[node name="CryptMap" parent="." instance=ExtResource("1_map")]
+[node name="CryptMap" parent="." unique_id=1990249213 instance=ExtResource("1_map")]
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
-position = Vector2(480, 300)
+[node name="Player" parent="." unique_id=1324736325 instance=ExtResource("2_player")]
+position = Vector2(488, 303)
 
-[node name="Ghoul1" parent="." instance=ExtResource("3_ghoul")]
+[node name="Ghoul1" parent="." unique_id=1336635382 instance=ExtResource("3_ghoul")]
 position = Vector2(200, 400)
 
-[node name="Ghoul2" parent="." instance=ExtResource("3_ghoul")]
+[node name="Ghoul2" parent="." unique_id=1140903132 instance=ExtResource("3_ghoul")]
 position = Vector2(700, 430)
 
-[node name="Ghoul3" parent="." instance=ExtResource("3_ghoul")]
+[node name="Ghoul3" parent="." unique_id=1591034941 instance=ExtResource("3_ghoul")]
 position = Vector2(760, 240)
+
+[node name="HUD" parent="." unique_id=2081068104 instance=ExtResource("4_hud")]

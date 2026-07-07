@@ -1,0 +1,157 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
+[ext_resource type="Shader" path="res://assets/shaders/orb.gdshader" id="2_orb"]
+[ext_resource type="Shader" path="res://assets/shaders/cooldown_radial.gdshader" id="3_cd"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="4_glow"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hp"]
+shader = ExtResource("2_orb")
+shader_parameter/fill = 1.0
+shader_parameter/liquid_color = Color(0.72, 0.1, 0.12, 1)
+shader_parameter/back_color = Color(0.05, 0.07, 0.09, 0.9)
+shader_parameter/rim_color = Color(0.2, 0.3, 0.32, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mp"]
+shader = ExtResource("2_orb")
+shader_parameter/fill = 1.0
+shader_parameter/liquid_color = Color(0.12, 0.35, 0.85, 1)
+shader_parameter/back_color = Color(0.05, 0.07, 0.09, 0.9)
+shader_parameter/rim_color = Color(0.2, 0.3, 0.32, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cd0"]
+shader = ExtResource("3_cd")
+shader_parameter/progress = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cd1"]
+shader = ExtResource("3_cd")
+shader_parameter/progress = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cd2"]
+shader = ExtResource("3_cd")
+shader_parameter/progress = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cd3"]
+shader = ExtResource("3_cd")
+shader_parameter/progress = 0.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_key"]
+font_size = 8
+font_color = Color(0.75, 0.85, 0.85, 0.9)
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0.8)
+
+[sub_resource type="LabelSettings" id="LabelSettings_key_dim"]
+font_size = 8
+font_color = Color(0.55, 0.62, 0.62, 0.5)
+shadow_size = 1
+shadow_color = Color(0, 0, 0, 0.8)
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="HealthOrb" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_hp")
+offset_left = 202.0
+offset_top = 306.0
+offset_right = 246.0
+offset_bottom = 350.0
+
+[node name="ManaOrb" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_mp")
+offset_left = 394.0
+offset_top = 306.0
+offset_right = 438.0
+offset_bottom = 350.0
+
+[node name="Hotbar" type="Control" parent="."]
+offset_left = 262.0
+offset_top = 316.0
+offset_right = 378.0
+offset_bottom = 342.0
+
+[node name="Slot0" type="ColorRect" parent="Hotbar"]
+color = Color(0.04, 0.09, 0.1, 0.92)
+offset_right = 26.0
+offset_bottom = 26.0
+
+[node name="Icon" type="TextureRect" parent="Hotbar/Slot0"]
+modulate = Color(0.4, 2.2, 1.9, 1)
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 23.0
+offset_bottom = 23.0
+texture = ExtResource("4_glow")
+expand_mode = 1
+
+[node name="Cooldown" type="ColorRect" parent="Hotbar/Slot0"]
+material = SubResource("ShaderMaterial_cd0")
+offset_right = 26.0
+offset_bottom = 26.0
+
+[node name="Key" type="Label" parent="Hotbar/Slot0"]
+offset_left = 2.0
+offset_top = 15.0
+offset_right = 24.0
+offset_bottom = 26.0
+text = "Q"
+label_settings = SubResource("LabelSettings_key")
+
+[node name="Slot1" type="ColorRect" parent="Hotbar"]
+color = Color(0.03, 0.06, 0.07, 0.85)
+offset_left = 30.0
+offset_right = 56.0
+offset_bottom = 26.0
+
+[node name="Cooldown" type="ColorRect" parent="Hotbar/Slot1"]
+material = SubResource("ShaderMaterial_cd1")
+offset_right = 26.0
+offset_bottom = 26.0
+
+[node name="Key" type="Label" parent="Hotbar/Slot1"]
+offset_left = 2.0
+offset_top = 15.0
+offset_right = 24.0
+offset_bottom = 26.0
+text = "W"
+label_settings = SubResource("LabelSettings_key_dim")
+
+[node name="Slot2" type="ColorRect" parent="Hotbar"]
+color = Color(0.03, 0.06, 0.07, 0.85)
+offset_left = 60.0
+offset_right = 86.0
+offset_bottom = 26.0
+
+[node name="Cooldown" type="ColorRect" parent="Hotbar/Slot2"]
+material = SubResource("ShaderMaterial_cd2")
+offset_right = 26.0
+offset_bottom = 26.0
+
+[node name="Key" type="Label" parent="Hotbar/Slot2"]
+offset_left = 2.0
+offset_top = 15.0
+offset_right = 24.0
+offset_bottom = 26.0
+text = "E"
+label_settings = SubResource("LabelSettings_key_dim")
+
+[node name="Slot3" type="ColorRect" parent="Hotbar"]
+color = Color(0.03, 0.06, 0.07, 0.85)
+offset_left = 90.0
+offset_right = 116.0
+offset_bottom = 26.0
+
+[node name="Cooldown" type="ColorRect" parent="Hotbar/Slot3"]
+material = SubResource("ShaderMaterial_cd3")
+offset_right = 26.0
+offset_bottom = 26.0
+
+[node name="Key" type="Label" parent="Hotbar/Slot3"]
+offset_left = 2.0
+offset_top = 15.0
+offset_right = 24.0
+offset_bottom = 26.0
+text = "R"
+label_settings = SubResource("LabelSettings_key_dim")
