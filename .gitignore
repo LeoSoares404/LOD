@@ -45,8 +45,5 @@ desktop.ini
 *.aseprite-*
 *.bak
 
-# Projeto PlatformIO separado (repo git proprio) - nao faz parte do jogo
-OverRev-repo/
-
 # Config local do Claude Code
 .claude/settings.local.json
