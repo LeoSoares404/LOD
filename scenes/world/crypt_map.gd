@@ -92,6 +92,18 @@ func _add_wall(center: Vector3, size: Vector3) -> void:
 	shape.shape = box
 	body.position = center
 	body.add_child(shape)
+
+	# volume visível — antes era só colisão invisível, o que deixava o mapa
+	# sem profundidade (paredes existiam pro player, não pros olhos)
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.16, 0.22, 0.24)
+	mesh.material = mat
+	mi.mesh = mesh
+	body.add_child(mi)
+
 	add_child(body)
 
 
