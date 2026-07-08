@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://d2amuw4yrcwkt"]
+[gd_scene load_steps=2 format=3 uid="uid://d2amuw4yrcwkt"]
 
-[ext_resource type="Script" path="res://scenes/ui/gems_system.gd"]
+[ext_resource type="Script" path="res://scenes/ui/gems_system.gd" id="1_script"]
 
 [node name="GemsSystem" type="CanvasLayer"]
-script = ExtResource("res://scenes/ui/gems_system.gd")
+script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
 offset_left = 200.0

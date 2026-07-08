@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://dqwu21v5c0w12"]
+[gd_scene load_steps=2 format=3 uid="uid://dqwu21v5c0w12"]
 
-[ext_resource type="Script" path="res://scenes/ui/inventory_menu.gd"]
+[ext_resource type="Script" path="res://scenes/ui/inventory_menu.gd" id="1_script"]
 
 [node name="InventoryMenu" type="CanvasLayer"]
-script = ExtResource("res://scenes/ui/inventory_menu.gd")
+script = ExtResource("1_script")
 
 [node name="MenuPanel" type="Panel" parent="."]
 offset_left = 270.0

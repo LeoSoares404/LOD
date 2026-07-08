@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://b4xyj8vvvw1ux"]
+[gd_scene load_steps=2 format=3 uid="uid://b4xyj8vvvw1ux"]
 
-[ext_resource type="Script" path="res://scenes/skills/effects/fire_pillar.gd"]
+[ext_resource type="Script" path="res://scenes/skills/effects/fire_pillar.gd" id="1_script"]
 
 [node name="FirePillar" type="Area2D"]
-script = ExtResource("res://scenes/skills/effects/fire_pillar.gd")
+script = ExtResource("1_script")

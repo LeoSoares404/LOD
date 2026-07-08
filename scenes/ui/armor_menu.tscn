@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://cm0cay4vvyp87"]
+[gd_scene load_steps=2 format=3 uid="uid://cm0cay4vvyp87"]
 
-[ext_resource type="Script" path="res://scenes/ui/armor_menu.gd"]
+[ext_resource type="Script" path="res://scenes/ui/armor_menu.gd" id="1_script"]
 
 [node name="ArmorMenu" type="CanvasLayer"]
-script = ExtResource("res://scenes/ui/armor_menu.gd")
+script = ExtResource("1_script")
 
 [node name="MenuPanel" type="Panel" parent="."]
 offset_left = 10.0
