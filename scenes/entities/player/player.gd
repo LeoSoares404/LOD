@@ -9,7 +9,8 @@ const BUBBLE_SCENE := preload("res://scenes/skills/effects/bubble.tscn")
 const PILLAR_SCENE := preload("res://scenes/skills/effects/fire_pillar.tscn")
 const CAST_OFFSET := Vector2(0, -12)
 
-# slots: 0=Q raio · 1=W bolha · 2=E pilar de fogo · 3=R superataque
+# slots: 0=raio · 1=bolha · 2=pilar de fogo · 3=superataque
+# teclas: mouse-mode = Q,W,E,R · wasd-mode = Q,E,C,R (W/A/S/D vira movimento)
 const SKILL_COOLDOWN := [0.6, 5.0, 3.5, 15.0]
 const SKILL_MANA := [8, 14, 10, 28]
 
@@ -88,10 +89,19 @@ func _physics_process(delta: float) -> void:
 	_regen_mana(delta)
 
 	for i in 4:
-		if Input.is_action_just_pressed("skill_%d" % (i + 1)) and _can_cast(i):
+		if _skill_key_pressed(i) and _can_cast(i):
 			_cast(i)
 
-	# segurar o botão direito = seguir o cursor (estilo Diablo)
+	if GameState.control_scheme == "wasd":
+		_move_wasd()
+	else:
+		_move_click()
+
+	_update_animation(delta)
+
+
+## Segurar o botão direito = seguir o cursor (estilo Diablo).
+func _move_click() -> void:
 	if Input.is_action_pressed("move_click"):
 		_target = get_global_mouse_position()
 		_moving = true
@@ -105,7 +115,42 @@ func _physics_process(delta: float) -> void:
 			velocity = to_target.normalized() * SPEED
 			move_and_slide()
 
-	_update_animation(delta)
+
+## WASD direto, sem click-to-move.
+func _move_wasd() -> void:
+	var dir := Vector2.ZERO
+	if Input.is_key_pressed(KEY_D):
+		dir.x += 1
+	if Input.is_key_pressed(KEY_A):
+		dir.x -= 1
+	if Input.is_key_pressed(KEY_S):
+		dir.y += 1
+	if Input.is_key_pressed(KEY_W):
+		dir.y -= 1
+
+	_moving = dir.length() > 0.0
+	if _moving:
+		velocity = dir.normalized() * SPEED
+		move_and_slide()
+	else:
+		velocity = Vector2.ZERO
+
+
+## Tecla da skill depende do esquema de controle ativo (número sempre funciona).
+func _skill_key_pressed(slot: int) -> bool:
+	if Input.is_key_just_pressed(KEY_1 + slot):
+		return true
+	var wasd := GameState.control_scheme == "wasd"
+	match slot:
+		0:
+			return Input.is_key_just_pressed(KEY_Q)
+		1:
+			return Input.is_key_just_pressed(KEY_E if wasd else KEY_W)
+		2:
+			return Input.is_key_just_pressed(KEY_C if wasd else KEY_E)
+		3:
+			return Input.is_key_just_pressed(KEY_R)
+	return false
 
 
 func _update_animation(delta: float) -> void:

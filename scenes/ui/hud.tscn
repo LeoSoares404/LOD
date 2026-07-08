@@ -231,3 +231,11 @@ I"
 horizontal_alignment = 1
 vertical_alignment = 1
 label_settings = SubResource("LabelSettings_counter")
+
+[node name="SettingsButton" type="Button" parent="."]
+offset_left = 100.0
+offset_top = 10.0
+offset_right = 140.0
+offset_bottom = 50.0
+text = "⚙
+O"

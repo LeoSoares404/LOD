@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cm0cay4vvyp87"]
+[gd_scene format=3 uid="uid://cm0cay4vvyp87"]
 
 [ext_resource type="Script" path="res://scenes/ui/armor_menu.gd"]
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://djby3v5j0xxb2"]
+[gd_scene format=3 uid="uid://djby3v5j0xxb2"]
 
 [ext_resource type="Script" path="res://scenes/skills/projectiles/lightning_bolt.gd"]
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://bvpvvpl1xkm0q"]
+[gd_scene format=3 uid="uid://bvpvvpl1xkm0q"]
 
 [ext_resource type="Script" path="res://scenes/ui/skills_menu.gd"]
 

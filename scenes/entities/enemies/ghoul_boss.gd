@@ -2,6 +2,7 @@ class_name GhoulBoss
 extends CharacterBody2D
 ## Boss: demônio grande e resistente. Persegue o player mantendo distância,
 ## causa dano por contato E atira projéteis. Muito HP.
+## Padrão de ataque cíclico: tiro reto → tiro de previsão de movimento → tridente.
 
 const SPEED := 34.0
 const STOP_DISTANCE := 90.0   # mantém distância para bombardear
@@ -58,10 +59,13 @@ func _physics_process(delta: float) -> void:
 		if _shoot_timer <= 0.0:
 			_shoot_timer = SHOOT_INTERVAL
 			_attack_count += 1
-			if _attack_count % 2 == 0:
-				_shoot_trident(to_player.normalized())
-			else:
-				_shoot(to_player.normalized())
+			match _attack_count % 3:
+				1:
+					_shoot(to_player.normalized())
+				2:
+					_shoot_predictive()
+				_:
+					_shoot_trident(to_player.normalized())
 
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
@@ -78,6 +82,26 @@ func _shoot(dir: Vector2) -> void:
 	var bolt: EnemyBolt = BOLT_SCENE.instantiate()
 	bolt.direction = dir
 	bolt.position = global_position + Vector2(0, -20)
+	get_tree().current_scene.add_child(bolt)
+
+
+## Mira onde o player deve estar quando o projétil chegar, com base na
+## velocidade atual dele — só funciona bem porque o bolt tem velocidade
+## constante, então dá pra calcular o tempo de voo direto.
+func _shoot_predictive() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	_sprite.scale = _base_spr_scale * Vector2(1.15, 0.88)
+	create_tween().tween_property(_sprite, "scale", _base_spr_scale, 0.28).set_trans(Tween.TRANS_BACK)
+
+	var origin := global_position + Vector2(0, -20)
+	var lead_time := origin.distance_to(_player.global_position) / EnemyBolt.SPEED
+	var predicted_pos: Vector2 = _player.global_position + _player.velocity * lead_time
+	var dir := (predicted_pos - origin).normalized()
+
+	var bolt: EnemyBolt = BOLT_SCENE.instantiate()
+	bolt.direction = dir
+	bolt.position = origin
 	get_tree().current_scene.add_child(bolt)
 
 

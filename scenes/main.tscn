@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://bcma8o84bciwp"]
+[gd_scene load_steps=7 format=3 uid="uid://bcma8o84bciwp"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/crypt_map.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/entities/player/player.tscn" id="2_player"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_menu.tscn" id="7_inventory"]
 [ext_resource type="PackedScene" path="res://scenes/ui/skills_menu.tscn" id="8_skills"]
 [ext_resource type="PackedScene" path="res://scenes/ui/gems_system.tscn" id="9_gems"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_menu.tscn" id="10_settings"]
 [ext_resource type="Script" path="res://scripts/systems/wave_manager.gd" id="5_wave"]
 
 [sub_resource type="Environment" id="Environment_main"]
@@ -41,3 +42,5 @@ script = ExtResource("5_wave")
 [node name="SkillsMenu" parent="." instance=ExtResource("8_skills")]
 
 [node name="GemsSystem" parent="." instance=ExtResource("9_gems")]
+
+[node name="SettingsMenu" parent="." instance=ExtResource("10_settings")]
