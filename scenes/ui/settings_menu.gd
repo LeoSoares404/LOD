@@ -25,8 +25,11 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit_pressed)
 
 
-func _process(_delta: float) -> void:
-	if Input.is_key_just_pressed(KEY_O):
+## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
+## process_mode = ALWAYS garante que o evento chega mesmo com o jogo pausado.
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_O:
 		toggle_menu()
 
 

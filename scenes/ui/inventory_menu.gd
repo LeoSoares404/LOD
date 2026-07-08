@@ -25,8 +25,10 @@ func _ready() -> void:
 	settings_button.pressed.connect(_on_settings_pressed)
 
 
-func _process(_delta: float) -> void:
-	if Input.is_key_just_pressed(KEY_I):
+## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_I:
 		toggle_menu()
 
 
@@ -79,17 +81,27 @@ func _create_gems_section() -> void:
 		gem_button.custom_minimum_size = Vector2(50, 50)
 		gem_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
-		# permite drag dessa pedra
-		gem_button.get_meta_overrides()
-		gem_button.gui_input.connect(_on_gem_gui_input.bindv([gem_type, gem_button]))
+		# permite drag dessa pedra (forwarding — Button não implementa _get_drag_data)
+		gem_button.set_drag_forwarding(
+			_get_gem_drag_data.bind(gem_type, gem_button), _cant_drop, _no_drop
+		)
 
 		gems_hbox.add_child(gem_button)
 
 
-func _on_gem_gui_input(event: InputEvent, gem_type: String, button: Button) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if gems_inventory[gem_type] > 0:
-			button.set_drag_preview(_create_gem_preview(gem_type))
+func _get_gem_drag_data(_at_position: Vector2, gem_type: String, button: Button) -> Variant:
+	if gems_inventory[gem_type] <= 0:
+		return null
+	button.set_drag_preview(_create_gem_preview(gem_type))
+	return gem_type
+
+
+func _cant_drop(_at_position: Vector2, _data: Variant) -> bool:
+	return false
+
+
+func _no_drop(_at_position: Vector2, _data: Variant) -> void:
+	pass
 
 
 func _create_gem_preview(gem_type: String) -> Control:

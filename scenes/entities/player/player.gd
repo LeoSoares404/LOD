@@ -1,13 +1,15 @@
 class_name Player
-extends CharacterBody2D
+extends CharacterBody3D
+## Player 2.5D: corpo 3D no plano XZ, sprite billboard. Mira das skills via
+## projeção do mouse no chão (Iso.mouse_ground_position). 16 px = 1 m.
 
-const SPEED := 90.0  # px/s (~5.6 tiles/s)
-const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "vibrar"
+const SPEED := 5.6            # m/s (era 90 px/s)
+const ARRIVE_DISTANCE := 0.25  # m — perto o bastante do alvo para parar sem "vibrar"
 
 const LIGHTNING_SCENE := preload("res://scenes/skills/projectiles/lightning_bolt.tscn")
 const BUBBLE_SCENE := preload("res://scenes/skills/effects/bubble.tscn")
 const PILLAR_SCENE := preload("res://scenes/skills/effects/fire_pillar.tscn")
-const CAST_OFFSET := Vector2(0, -12)
+const CAST_OFFSET := Vector3(0, 0.75, 0)  # altura do peito
 
 # slots: 0=raio · 1=bolha · 2=pilar de fogo · 3=superataque
 # teclas: mouse-mode = Q,W,E,R · wasd-mode = Q,E,C,R (W/A/S/D vira movimento)
@@ -16,24 +18,27 @@ const SKILL_MANA := [8, 14, 10, 28]
 
 # raio (Q)
 const LIGHTNING_BOUNCES := 3
-const LIGHTNING_BOUNCE_RANGE := 150.0
+const LIGHTNING_BOUNCE_RANGE := 9.4
 
 # bolha (W)
 const BUBBLE_DURATION := 3.0
 const BUBBLE_MAX_SECONDARY := 2
-const BUBBLE_SECONDARY_RANGE := 120.0
+const BUBBLE_SECONDARY_RANGE := 7.5
+const BUBBLE_RADIUS := 2.5
 
 # pilar de fogo (E)
 const PILLAR_DURATION := 2.5
-const PILLAR_RADIUS := 80.0
+const PILLAR_RADIUS := 5.0
 const PILLAR_TICK_RATE := 0.2
 
 # superataque (R)
-const SUPER_EXPLOSION_RADIUS := 200.0
+const SUPER_EXPLOSION_RADIUS := 12.5
 const SUPER_STUN_DURATION := 1.5
 
 const MAX_MANA := 30
 const MANA_REGEN := 4.0
+
+const ENEMY_LAYER_MASK := 4  # layer 3 "enemies"
 
 var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
@@ -47,10 +52,11 @@ const ROW_SIDE := 2
 var _anim_time := 0.0
 var _facing_row := ROW_DOWN
 
-@onready var _sprite: Sprite2D = %Sprite
+@onready var _sprite: Sprite3D = %Sprite
 
-var _target := Vector2.ZERO
+var _target := Vector3.ZERO
 var _moving := false
+var _just_pressed := {}  # physical_keycode -> true (limpo a cada tick de física)
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
@@ -72,14 +78,25 @@ func _emit_initial_status() -> void:
 
 func _on_hit_received(_hitbox: HitboxComponent) -> void:
 	EventBus.player_damaged.emit(_hitbox.damage, health.health)
-	# flash vermelho de dano
-	modulate = Color(2.5, 0.6, 0.6)
-	create_tween().tween_property(self, "modulate", Color.WHITE, 0.2)
+	# flash vermelho de dano (modulate no sprite — Node3D não tem modulate)
+	_sprite.modulate = Color(2.5, 0.6, 0.6)
+	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.2)
 
 
 func _on_died() -> void:
 	# morte por enquanto = recomeçar a cena (respawn instantâneo)
 	get_tree().reload_current_scene.call_deferred()
+
+
+## Buffer de "acabou de apertar" por tecla física — Input.is_key_just_pressed()
+## NÃO existe na API do Godot (erro nº 3 do ERROS_GODOT.md).
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		_just_pressed[event.physical_keycode] = true
+
+
+func _key_just_pressed(key: Key) -> bool:
+	return _just_pressed.has(key)
 
 
 func _physics_process(delta: float) -> void:
@@ -98,19 +115,21 @@ func _physics_process(delta: float) -> void:
 		_move_click()
 
 	_update_animation(delta)
+	_just_pressed.clear()
 
 
 ## Segurar o botão direito = seguir o cursor (estilo Diablo).
 func _move_click() -> void:
 	if Input.is_action_pressed("move_click"):
-		_target = get_global_mouse_position()
+		_target = Iso.mouse_ground_position(self)
 		_moving = true
 
 	if _moving:
 		var to_target := _target - global_position
+		to_target.y = 0.0
 		if to_target.length() <= ARRIVE_DISTANCE:
 			_moving = false
-			velocity = Vector2.ZERO
+			velocity = Vector3.ZERO
 		else:
 			velocity = to_target.normalized() * SPEED
 			move_and_slide()
@@ -118,50 +137,50 @@ func _move_click() -> void:
 
 ## WASD direto, sem click-to-move.
 func _move_wasd() -> void:
-	var dir := Vector2.ZERO
+	var dir := Vector3.ZERO
 	if Input.is_key_pressed(KEY_D):
 		dir.x += 1
 	if Input.is_key_pressed(KEY_A):
 		dir.x -= 1
 	if Input.is_key_pressed(KEY_S):
-		dir.y += 1
+		dir.z += 1
 	if Input.is_key_pressed(KEY_W):
-		dir.y -= 1
+		dir.z -= 1
 
 	_moving = dir.length() > 0.0
 	if _moving:
 		velocity = dir.normalized() * SPEED
 		move_and_slide()
 	else:
-		velocity = Vector2.ZERO
+		velocity = Vector3.ZERO
 
 
 ## Tecla da skill depende do esquema de controle ativo (número sempre funciona).
 func _skill_key_pressed(slot: int) -> bool:
-	if Input.is_key_just_pressed(KEY_1 + slot):
+	if _key_just_pressed(KEY_1 + slot):
 		return true
 	var wasd := GameState.control_scheme == "wasd"
 	match slot:
 		0:
-			return Input.is_key_just_pressed(KEY_Q)
+			return _key_just_pressed(KEY_Q)
 		1:
-			return Input.is_key_just_pressed(KEY_E if wasd else KEY_W)
+			return _key_just_pressed(KEY_E if wasd else KEY_W)
 		2:
-			return Input.is_key_just_pressed(KEY_C if wasd else KEY_E)
+			return _key_just_pressed(KEY_C if wasd else KEY_E)
 		3:
-			return Input.is_key_just_pressed(KEY_R)
+			return _key_just_pressed(KEY_R)
 	return false
 
 
 func _update_animation(delta: float) -> void:
-	var walking := _moving and velocity.length() > 1.0
+	var walking := _moving and velocity.length() > 0.1
 	if walking:
-		# direção dominante decide a linha do spritesheet
-		if absf(velocity.x) > absf(velocity.y):
+		# direção dominante decide a linha do spritesheet (tela: -Z = cima)
+		if absf(velocity.x) > absf(velocity.z):
 			_facing_row = ROW_SIDE
 			_sprite.flip_h = velocity.x < 0
 		else:
-			_facing_row = ROW_UP if velocity.y < 0 else ROW_DOWN
+			_facing_row = ROW_UP if velocity.z < 0 else ROW_DOWN
 		_anim_time += delta
 	else:
 		_anim_time = 0.0
@@ -196,50 +215,52 @@ func _cast(slot: int) -> void:
 
 
 func _cast_lightning() -> void:
-	var origin := global_position + CAST_OFFSET
-	var lightning: Node2D = LIGHTNING_SCENE.instantiate()
-	lightning.position = origin
-	lightning.target = get_global_mouse_position()
+	var lightning: Node3D = LIGHTNING_SCENE.instantiate()
+	lightning.position = global_position + CAST_OFFSET
+	lightning.target = Iso.mouse_ground_position(self) + Vector3(0, CAST_OFFSET.y, 0)
 	lightning.player = self
 	get_tree().current_scene.add_child(lightning)
 
 
 func _cast_bubble() -> void:
-	var bubble: Node2D = BUBBLE_SCENE.instantiate()
-	bubble.position = get_global_mouse_position()
+	var bubble: Node3D = BUBBLE_SCENE.instantiate()
+	bubble.position = Iso.mouse_ground_position(self)
 	bubble.player = self
 	get_tree().current_scene.add_child(bubble)
 
 
 func _cast_pillar() -> void:
-	var pillar: Node2D = PILLAR_SCENE.instantiate()
-	pillar.position = get_global_mouse_position()
+	var pillar: Node3D = PILLAR_SCENE.instantiate()
+	pillar.position = Iso.mouse_ground_position(self)
 	pillar.player = self
 	get_tree().current_scene.add_child(pillar)
 
 
 func _cast_super() -> void:
-	var target_pos := get_global_mouse_position()
+	var target_pos := Iso.mouse_ground_position(self)
 	global_position = target_pos
 
-	# encontra inimigos na área usando PhysicsShapeQuery
-	var space_state = get_world_2d().direct_space_state
-	var query = PhysicsShapeQueryParameters2D.new()
-	query.shape = CircleShape2D.new()
-	query.shape.radius = SUPER_EXPLOSION_RADIUS
-	query.transform = Transform2D.IDENTITY.translated(target_pos)
+	# encontra inimigos na área usando PhysicsShapeQuery 3D
+	var space_state := get_world_3d().direct_space_state
+	var query := PhysicsShapeQueryParameters3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = SUPER_EXPLOSION_RADIUS
+	query.shape = sphere
+	query.transform = Transform3D(Basis(), target_pos + Vector3(0, 0.75, 0))
+	query.collision_mask = ENEMY_LAYER_MASK
 
-	var results = space_state.intersect_shape(query)
+	var results := space_state.intersect_shape(query)
 
 	for result in results:
-		if result.collider is Ghoul:
-			var hitbox = HitboxComponent.new()
+		var collider: Object = result.collider
+		if collider is Node3D and collider.is_in_group("enemies"):
+			var hitbox := HitboxComponent.new()
 			hitbox.damage = 50
 			hitbox.stun_duration = SUPER_STUN_DURATION
-			if result.collider.has_node("Hurtbox"):
-				result.collider.get_node("Hurtbox").hit_received.emit(hitbox)
+			if collider.has_node("Hurtbox"):
+				collider.get_node("Hurtbox").take_hit(hitbox)  # aplica dano de verdade (emit puro pulava take_damage)
+			hitbox.queue_free()
 
 	# efeito visual
-	var tween := create_tween()
-	modulate = Color(1.5, 1.0, 2.0)
-	tween.tween_property(self, "modulate", Color.WHITE, 0.3)
+	_sprite.modulate = Color(1.5, 1.0, 2.0)
+	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)

@@ -44,7 +44,7 @@ Ou seja: a maioria dos ~30 erros vinha de 8 tags mal formadas.
 
 ---
 
-## 3. `Static function "is_key_just_pressed()" not found` — PENDENTE
+## 3. `Static function "is_key_just_pressed()" not found` — CORRIGIDO
 
 **Onde aparece:** `player.gd`, `settings_menu.gd`, `skills_menu.gd`, `inventory_menu.gd`, `armor_menu.gd`, `gems_system.gd`.
 
@@ -57,7 +57,7 @@ Provavelmente o código foi escrito assumindo que existia um "just pressed" para
 
 ---
 
-## 4. Erros extras em `gems_system.gd` — PENDENTE
+## 4. Erros extras em `gems_system.gd` — CORRIGIDO
 
 - **`Cannot find member "DROP_MODE_ON_ITEM" in base "Control"`** (linha 51): a constante correta pertence à classe `Tree`, não a `Control`. Para drag-and-drop em `Control` usa-se `_can_drop_data()` / `_drop_data()`, não `drop_mode`.
 - **`Function "get_global_mouse_position()" not found in base self`** (linhas 73 e 81): esse método existe em `CanvasItem` (Node2D/Control). O erro costuma ser efeito colateral do script não compilar por causa dos itens acima; vale reconferir depois que o item 3 for resolvido, e confirmar que o script realmente `extends Control`/`Node2D`.
@@ -70,7 +70,34 @@ Provavelmente o código foi escrito assumindo que existia um "just pressed" para
 |---|---|---|
 | `Missing 'id'` em `ext_resource` (8 cenas) | `.tscn` escrito fora do editor, sem `id` | Corrigido |
 | Failed loading / preload / "file corrupt" | Cascata do item acima | Resolve junto |
-| `is_key_just_pressed()` | Função inexistente na API `Input` | Pendente (decisão de design) |
-| `DROP_MODE_ON_ITEM` / `get_global_mouse_position` | Uso de API de classe errada + cascata | Pendente |
+| `is_key_just_pressed()` | Função inexistente na API `Input` | Corrigido — `_input(event)` com `InputEventKey` (menus) e buffer de teclas no player |
+| `DROP_MODE_ON_ITEM` / `get_global_mouse_position` | Uso de API de classe errada + cascata | Corrigido — `set_drag_forwarding()` por slot no gems_system e drag real no inventário |
 
 **Recomendação geral:** sempre que possível, salve as cenas pelo próprio editor do Godot (ou reimporte o projeto) para que `id`, `uid` e `load_steps` sejam gravados corretamente e esse tipo de erro não volte.
+
+
+---
+
+## 5. Conversão para 3D (modo 2.5D) — 08/07/2026
+
+O jogo foi convertido de 2D para 3D com câmera isométrica fixa estilo Diablo
+(pitch de -55°, ortográfica), mantendo toda a arte pixel como `Sprite3D`
+billboard. Convenção: **16 px da arte = 1 m de mundo** (`Iso.PPM`), gameplay
+no plano XZ. A mira do mouse é projetada no chão via `Iso.mouse_ground_position()`.
+
+Correções extras encontradas durante a conversão:
+
+- `bubble.gd` / `fire_pillar.gd`: as áreas ficavam com `collision_mask` default (1 = world)
+  e nunca detectavam as hurtboxes dos inimigos (layer 16). Agora `collision_mask = 16`.
+- Skills que emitiam `hit_received.emit(hitbox)` direto pulavam o `health.take_damage()`
+  (mostravam número de dano sem ferir). Agora chamam `take_hit(hitbox)`.
+- `lightning_bolt.gd`: a lista de "já atingidos" guardava posições e comparava com nós
+  (nunca batia, podia re-acertar o mesmo inimigo). Agora rastreia os nós.
+- `inventory_menu.gd`: `get_meta_overrides()` não existe na API; o drag das pedras agora
+  usa `set_drag_forwarding()`.
+- `main.tscn` tinha `load_steps=7` com 10 recursos (corrigido na reescrita).
+- Checks `is Ghoul` viraram `is_in_group("enemies")` — sprinters e bosses agora também
+  são afetados por bolha/pilar/raio/super, como o design pedia.
+
+Projeto validado com Godot 4.3 headless: import sem erros e 10 s de execução sem
+erros de script.

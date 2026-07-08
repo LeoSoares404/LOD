@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://scenes/skills/projectiles/lightning_bolt.gd" id="1_script"]
 
-[node name="LightningBolt" type="Node2D"]
+[node name="LightningBolt" type="Node3D"]
 script = ExtResource("1_script")

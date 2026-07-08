@@ -1,16 +1,17 @@
 class_name Meteor
-extends Node2D
+extends Node3D
 ## Um meteoro: marca de aviso no chão + rastro caindo do céu; no impacto instancia
 ## a explosão (dano em área) e some. `start_delay` escalona as quedas na chuva.
 
 const WARN_TIME := 0.55
 const EXPLOSION_SCENE := preload("res://scenes/entities/projectiles/meteor_explosion.tscn")
 const GLOW := preload("res://assets/sprites/props/glow_gradient.tres")
+const PIXEL_SIZE := 1.0 / Iso.PPM
 
 @export var start_delay := 0.0
 
-var _warn: Sprite2D
-var _streak: Sprite2D
+var _warn: Sprite3D
+var _streak: Sprite3D
 
 
 func _ready() -> void:
@@ -22,24 +23,29 @@ func _ready() -> void:
 
 
 func _begin() -> void:
-	# marca de aviso elíptica no chão (perspectiva)
-	_warn = Sprite2D.new()
+	# marca de aviso elíptica rente ao chão
+	_warn = Sprite3D.new()
 	_warn.texture = GLOW
+	_warn.pixel_size = PIXEL_SIZE
+	_warn.rotation_degrees.x = -90.0
 	_warn.modulate = Color(2.2, 0.4, 0.2, 0.2)
-	_warn.scale = Vector2(0.34, 0.2)
+	_warn.scale = Vector3(0.34, 0.2, 1.0)
+	_warn.position.y = 0.03
 	add_child(_warn)
 	var pulse := create_tween().set_loops(2)  # finito: cobre ~WARN_TIME (evita loop infinito)
 	pulse.tween_property(_warn, "modulate:a", 0.85, 0.14).set_trans(Tween.TRANS_SINE)
 	pulse.tween_property(_warn, "modulate:a", 0.3, 0.14).set_trans(Tween.TRANS_SINE)
 
 	# meteoro caindo do alto
-	_streak = Sprite2D.new()
+	_streak = Sprite3D.new()
 	_streak.texture = GLOW
+	_streak.pixel_size = PIXEL_SIZE
+	_streak.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_streak.modulate = Color(3.0, 1.5, 0.5)
-	_streak.scale = Vector2(0.16, 0.34)
-	_streak.position = Vector2(-38, -170)
+	_streak.scale = Vector3(0.16, 0.34, 1.0)
+	_streak.position = Vector3(-2.4, 10.6, 0)
 	add_child(_streak)
-	create_tween().tween_property(_streak, "position", Vector2(0, -6), WARN_TIME) \
+	create_tween().tween_property(_streak, "position", Vector3(0, 0.4, 0), WARN_TIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	get_tree().create_timer(WARN_TIME).timeout.connect(_impact)

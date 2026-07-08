@@ -20,8 +20,10 @@ func _ready() -> void:
 	_create_skill_slots()
 
 
-func _process(_delta: float) -> void:
-	if Input.is_key_just_pressed(KEY_CTRL):
+## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_CTRL:
 		toggle_gems_ui()
 
 
@@ -47,8 +49,11 @@ func _create_skill_slots() -> void:
 		slot_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		gem_slot.add_child(slot_rect)
 
-		# detectar drop
-		gem_slot.drop_mode = Control.DROP_MODE_ON_ITEM
+		# detectar drop (drop_mode/DROP_MODE_ON_ITEM é da classe Tree, não de
+		# Control — em Control usa-se forwarding de _can_drop_data/_drop_data)
+		gem_slot.set_drag_forwarding(
+			_no_drag, _can_drop_on_slot.bind(slot), _drop_on_slot.bind(slot)
+		)
 
 		var gems_display = HBoxContainer.new()
 		gems_display.custom_minimum_size = Vector2(70, 70)
@@ -67,23 +72,19 @@ func _create_skill_slots() -> void:
 		skills_container.add_child(vbox)
 
 
-func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
-	# detecta qual slot está recebendo o drop
-	for slot in slot_containers.keys():
-		if slot_containers[slot].get_global_rect().has_point(get_global_mouse_position()):
-			return typeof(data) == TYPE_STRING and data in GEM_TYPES
-	return false
+func _no_drag(_at_position: Vector2) -> Variant:
+	return null
 
 
-func _drop_data(at_position: Vector2, data: Variant) -> void:
-	# encontra qual slot recebeu o drop
-	for slot in slot_containers.keys():
-		if slot_containers[slot].get_global_rect().has_point(get_global_mouse_position()):
-			if typeof(data) == TYPE_STRING and data in GEM_TYPES:
-				equipped_gems[slot].append(data)
-				_update_gem_display(slot)
-				print("Pedra %s equipada no slot %s" % [data, ["Q", "W", "E", "R"][slot]])
-			return
+func _can_drop_on_slot(_at_position: Vector2, data: Variant, _slot: int) -> bool:
+	return typeof(data) == TYPE_STRING and data in GEM_TYPES
+
+
+func _drop_on_slot(_at_position: Vector2, data: Variant, slot: int) -> void:
+	if typeof(data) == TYPE_STRING and data in GEM_TYPES:
+		equipped_gems[slot].append(data)
+		_update_gem_display(slot)
+		print("Pedra %s equipada no slot %s" % [data, ["Q", "W", "E", "R"][slot]])
 
 
 func _update_gem_display(slot: int) -> void:

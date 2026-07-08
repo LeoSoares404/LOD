@@ -3,26 +3,30 @@
 [ext_resource type="Script" path="res://scenes/entities/projectiles/arcane_nova.gd" id="1_nova"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="2_glow"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_nova"]
-radius = 66.0
+[sub_resource type="SphereShape3D" id="SphereShape3D_nova"]
+radius = 4.1
 
-[node name="ArcaneNova" type="Area2D"]
+[node name="ArcaneNova" type="Area3D"]
 collision_layer = 0
 collision_mask = 16
 script = ExtResource("1_nova")
 damage = 1
-knockback_force = 70.0
+knockback_force = 4.4
 stun_duration = 2.5
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CircleShape2D_nova")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.75, 0)
+shape = SubResource("SphereShape3D_nova")
 
-[node name="Ring" type="Sprite2D" parent="."]
+[node name="Ring" type="Sprite3D" parent="."]
 modulate = Color(2.6, 2.3, 0.8, 0.9)
+rotation = Vector3(-1.5708, 0, 0)
+position = Vector3(0, 0.05, 0)
+pixel_size = 0.0625
 texture = ExtResource("2_glow")
 
-[node name="Light" type="PointLight2D" parent="."]
-color = Color(1, 0.95, 0.6, 1)
-energy = 1.2
-texture = ExtResource("2_glow")
-texture_scale = 0.7
+[node name="Light" type="OmniLight3D" parent="."]
+position = Vector3(0, 1, 0)
+light_color = Color(1, 0.95, 0.6, 1)
+light_energy = 1.2
+omni_range = 6.0

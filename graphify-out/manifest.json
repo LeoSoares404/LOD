@@ -1,0 +1,117 @@
+{
+  "ARCHITECTURE.md": {
+    "mtime": 1783458861.51955,
+    "ast_hash": "02f354fbeb2d6c67720733f518455190",
+    "semantic_hash": "02f354fbeb2d6c67720733f518455190"
+  },
+  "ERROS_GODOT.md": {
+    "mtime": 1783482438.6853955,
+    "ast_hash": "05c74c1374a28b798fb859538ad3411b",
+    "semantic_hash": "05c74c1374a28b798fb859538ad3411b"
+  },
+  "GAME_DESIGN.md": {
+    "mtime": 1783458861.535547,
+    "ast_hash": "05ea79fb6b3f8e3218cb3617411d775d",
+    "semantic_hash": "05ea79fb6b3f8e3218cb3617411d775d"
+  },
+  "INSTALL.md": {
+    "mtime": 1783458861.5375469,
+    "ast_hash": "5a1e8ea946ac536363156480e4482fc2",
+    "semantic_hash": "5a1e8ea946ac536363156480e4482fc2"
+  },
+  "PITFALLS.md": {
+    "mtime": 1783458861.5385447,
+    "ast_hash": "43f4115f1a2a64f3c7976a4e44824a72",
+    "semantic_hash": "43f4115f1a2a64f3c7976a4e44824a72"
+  },
+  "README.md": {
+    "mtime": 1783458861.5395494,
+    "ast_hash": "cef2a7dcb0704a65f8925485ba91283d",
+    "semantic_hash": "cef2a7dcb0704a65f8925485ba91283d"
+  },
+  "assets/sprites/enemies/boss_hd.png": {
+    "mtime": 1783474359.6373703,
+    "ast_hash": "11093928098eccd7d88e3461e5f296c1",
+    "semantic_hash": "11093928098eccd7d88e3461e5f296c1"
+  },
+  "assets/sprites/enemies/ghoul_walk.png": {
+    "mtime": 1783474359.6383717,
+    "ast_hash": "804eefb9e1050f273f03be7b411444bf",
+    "semantic_hash": "804eefb9e1050f273f03be7b411444bf"
+  },
+  "assets/sprites/player/player_walk.png": {
+    "mtime": 1783458861.5265465,
+    "ast_hash": "c8f1eb44a486be4b15d22182c9592e90",
+    "semantic_hash": "c8f1eb44a486be4b15d22182c9592e90"
+  },
+  "assets/sprites/props/column.png": {
+    "mtime": 1783458861.5275486,
+    "ast_hash": "2a9f5f9ee57061b4a17a674f5bea463a",
+    "semantic_hash": "2a9f5f9ee57061b4a17a674f5bea463a"
+  },
+  "assets/sprites/props/emblem.png": {
+    "mtime": 1783474359.649375,
+    "ast_hash": "461f2449784839579550cd520a1ed89a",
+    "semantic_hash": "461f2449784839579550cd520a1ed89a"
+  },
+  "assets/sprites/props/obelisk.png": {
+    "mtime": 1783458861.5295463,
+    "ast_hash": "3ffad555a16389b5c6509bd9503eda1f",
+    "semantic_hash": "3ffad555a16389b5c6509bd9503eda1f"
+  },
+  "assets/sprites/tiles/crypt_tiles.png": {
+    "mtime": 1783458861.5315425,
+    "ast_hash": "22c64abbb22368114db84918540d44ef",
+    "semantic_hash": "22c64abbb22368114db84918540d44ef"
+  },
+  "assets/sprites/ui/skill_e.png": {
+    "mtime": 1783474359.6583748,
+    "ast_hash": "19251b587a9d28ef0c19d1c74357d7f2",
+    "semantic_hash": "19251b587a9d28ef0c19d1c74357d7f2"
+  },
+  "assets/sprites/ui/skill_q.png": {
+    "mtime": 1783474359.6623752,
+    "ast_hash": "ca7e51cb1971212085d0a58fafcb000f",
+    "semantic_hash": "ca7e51cb1971212085d0a58fafcb000f"
+  },
+  "assets/sprites/ui/skill_r.png": {
+    "mtime": 1783474359.6679556,
+    "ast_hash": "0a610d2d31456a4e58a464bbca543909",
+    "semantic_hash": "0a610d2d31456a4e58a464bbca543909"
+  },
+  "assets/sprites/ui/skill_w.png": {
+    "mtime": 1783474359.672951,
+    "ast_hash": "bee446e30eb84f0c213fdb37b2a90532",
+    "semantic_hash": "bee446e30eb84f0c213fdb37b2a90532"
+  },
+  "icon.svg": {
+    "mtime": 1783458861.5365462,
+    "ast_hash": "ee93f654beb94e26fcf7a392fc40bca1",
+    "semantic_hash": "ee93f654beb94e26fcf7a392fc40bca1"
+  },
+  "image/boss.jpg": {
+    "mtime": 1783474359.6759632,
+    "ast_hash": "d10680be7995dd6d81ae5abb90404c52",
+    "semantic_hash": "d10680be7995dd6d81ae5abb90404c52"
+  },
+  "image/chao.png": {
+    "mtime": 1783474359.7019536,
+    "ast_hash": "6a00315bd3d803dee490868e1ca88fbd",
+    "semantic_hash": "6a00315bd3d803dee490868e1ca88fbd"
+  },
+  "image/chao2.jpg": {
+    "mtime": 1783474359.7059562,
+    "ast_hash": "3068ce6a237d2c37097caa672dced8e1",
+    "semantic_hash": "3068ce6a237d2c37097caa672dced8e1"
+  },
+  "image/imagem skils.jpg": {
+    "mtime": 1783474359.709953,
+    "ast_hash": "9083ff3f19009cc029c5db1e680e258c",
+    "semantic_hash": "9083ff3f19009cc029c5db1e680e258c"
+  },
+  "image/simbolo.png": {
+    "mtime": 1783474359.7339573,
+    "ast_hash": "f6342351ce3354c29b3666a3b0e0bf1e",
+    "semantic_hash": "f6342351ce3354c29b3666a3b0e0bf1e"
+  }
+}

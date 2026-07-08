@@ -26,8 +26,10 @@ func _ready() -> void:
 	_create_available_skills()
 
 
-func _process(_delta: float) -> void:
-	if Input.is_key_just_pressed(KEY_I):
+## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_I:
 		if is_open:
 			toggle_menu()
 
