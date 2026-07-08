@@ -47,3 +47,16 @@ desktop.ini
 
 # Config local do Claude Code
 .claude/settings.local.json
+project.godot
+icon.svg.import
+assets/sprites/ui/skill_w.png.import
+assets/sprites/ui/skill_r.png.import
+assets/sprites/ui/skill_q.png.import
+assets/sprites/ui/skill_e.png.import
+assets/sprites/tiles/crypt_tiles.png.import
+assets/sprites/props/obelisk.png.import
+assets/sprites/props/emblem.png.import
+assets/sprites/props/column.png.import
+assets/sprites/player/player_walk.png.import
+assets/sprites/enemies/ghoul_walk.png.import
+assets/sprites/enemies/boss_hd.png.import
