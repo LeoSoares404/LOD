@@ -1,27 +1,29 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
-[ext_resource type="Shader" path="res://assets/shaders/orb.gdshader" id="2_orb"]
+[ext_resource type="Shader" path="res://assets/shaders/orb_fill.gdshader" id="2_orb"]
 [ext_resource type="Shader" path="res://assets/shaders/cooldown_radial.gdshader" id="3_cd"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="4_glow"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/skill_q.png" id="5_iconq"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/skill_w.png" id="6_iconw"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/skill_e.png" id="7_icone"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/skill_r.png" id="8_iconr"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/orb_health.png" id="9_orbhp"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/orb_mana.png" id="10_orbmp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hp"]
 shader = ExtResource("2_orb")
 shader_parameter/fill = 1.0
-shader_parameter/liquid_color = Color(0.72, 0.1, 0.12, 1)
-shader_parameter/back_color = Color(0.05, 0.07, 0.09, 0.9)
-shader_parameter/rim_color = Color(0.2, 0.3, 0.32, 1)
+shader_parameter/orb_center = Vector2(0.5, 0.47)
+shader_parameter/orb_radius = 0.32
+shader_parameter/empty_dark = 0.25
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_mp"]
 shader = ExtResource("2_orb")
 shader_parameter/fill = 1.0
-shader_parameter/liquid_color = Color(0.12, 0.35, 0.85, 1)
-shader_parameter/back_color = Color(0.05, 0.07, 0.09, 0.9)
-shader_parameter/rim_color = Color(0.2, 0.3, 0.32, 1)
+shader_parameter/orb_center = Vector2(0.5, 0.5)
+shader_parameter/orb_radius = 0.3
+shader_parameter/empty_dark = 0.25
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cd0"]
 shader = ExtResource("3_cd")
@@ -66,21 +68,27 @@ shadow_color = Color(0, 0, 0, 0.85)
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
-[node name="HealthOrb" type="ColorRect" parent="."]
+[node name="HealthOrb" type="TextureRect" parent="."]
 unique_name_in_owner = true
+texture_filter = 1
 material = SubResource("ShaderMaterial_hp")
-offset_left = 202.0
-offset_top = 306.0
-offset_right = 246.0
-offset_bottom = 350.0
+offset_left = 196.0
+offset_top = 300.0
+offset_right = 252.0
+offset_bottom = 356.0
+texture = ExtResource("9_orbhp")
+expand_mode = 1
 
-[node name="ManaOrb" type="ColorRect" parent="."]
+[node name="ManaOrb" type="TextureRect" parent="."]
 unique_name_in_owner = true
+texture_filter = 1
 material = SubResource("ShaderMaterial_mp")
-offset_left = 394.0
-offset_top = 306.0
-offset_right = 438.0
-offset_bottom = 350.0
+offset_left = 388.0
+offset_top = 300.0
+offset_right = 444.0
+offset_bottom = 356.0
+texture = ExtResource("10_orbmp")
+expand_mode = 1
 
 [node name="Hotbar" type="Control" parent="."]
 offset_left = 262.0

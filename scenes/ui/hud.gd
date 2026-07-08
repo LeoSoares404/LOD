@@ -4,8 +4,8 @@ extends CanvasLayer
 
 const SLOT_COUNT := 4
 
-@onready var health_orb: ColorRect = %HealthOrb
-@onready var mana_orb: ColorRect = %ManaOrb
+@onready var health_orb: TextureRect = %HealthOrb
+@onready var mana_orb: TextureRect = %ManaOrb
 @onready var banner: Label = %WaveBanner
 @onready var counter: Label = %WaveCounter
 
