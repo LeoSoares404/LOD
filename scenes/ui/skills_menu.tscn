@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvpvvpl1xkm0q"]
+
+[ext_resource type="Script" path="res://scenes/ui/skills_menu.gd" id="1_script"]
+
+[node name="SkillsMenu" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="MenuPanel" type="Panel" parent="."]
+offset_left = 400.0
+offset_top = 50.0
+offset_right = 950.0
+offset_bottom = 380.0
+modulate = Color(0.1, 0.1, 0.15, 0.95)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuPanel"]
+layout_mode = 1
+anchors_preset = 15
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+text = "⚙ Gerenciador de Skills"
+custom_minimum_size = Vector2(0, 30)
+
+[node name="EquippedLabel" type="Label" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+text = "Equipadas:"
+
+[node name="EquippedContainer" type="VBoxContainer" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+theme_override_constants/separation = 5
+
+[node name="AvailableLabel" type="Label" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+text = "Clique em uma skill para equipar no slot selecionado:"
+
+[node name="AvailableContainer" type="GridContainer" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+columns = 4
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8

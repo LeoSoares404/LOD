@@ -1,34 +1,47 @@
 class_name Player
-extends CharacterBody2D
+extends CharacterBody3D
+## Player 2.5D: corpo 3D no plano XZ, sprite billboard. Mira das skills via
+## projeção do mouse no chão (Iso.mouse_ground_position). 16 px = 1 m.
 
-const SPEED := 90.0  # px/s (~5.6 tiles/s)
-const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "vibrar"
+const SPEED := 5.6            # m/s (era 90 px/s)
+const ARRIVE_DISTANCE := 0.25  # m — perto o bastante do alvo para parar sem "vibrar"
 
-const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
-const NOVA_SCENE := preload("res://scenes/entities/projectiles/arcane_nova.tscn")
-const METEOR_SCENE := preload("res://scenes/entities/projectiles/meteor.tscn")
-const CAST_OFFSET := Vector2(0, -12)  # projéteis nascem no peito, não nos pés
+const LIGHTNING_SCENE := preload("res://scenes/skills/projectiles/lightning_bolt.tscn")
+const BUBBLE_SCENE := preload("res://scenes/skills/effects/bubble.tscn")
+const PILLAR_SCENE := preload("res://scenes/skills/effects/fire_pillar.tscn")
+const CAST_OFFSET := Vector3(0, 0.75, 0)  # altura do peito
 
-# slots: 0=Q bolt · 1=W nova (stun) · 2=E dash · 3=R chuva de meteoros
-const SKILL_COOLDOWN := [0.4, 4.5, 2.5, 13.0]
-const SKILL_MANA := [5, 12, 6, 24]
+# slots: 0=raio · 1=bolha · 2=pilar de fogo · 3=superataque
+# teclas: mouse-mode = Q,W,E,R · wasd-mode = Q,E,C,R (W/A/S/D vira movimento)
+const SKILL_COOLDOWN := [0.6, 5.0, 3.5, 15.0]
+const SKILL_MANA := [8, 14, 10, 28]
 
-# chuva de meteoros (R)
-const METEOR_COUNT := 8
-const METEOR_SPREAD := 95.0     # raio de queda ao redor do cursor
-const METEOR_STAGGER := 0.11    # s entre cada meteoro
+# raio (Q)
+const LIGHTNING_BOUNCES := 3
+const LIGHTNING_BOUNCE_RANGE := 9.4
+
+# bolha (W)
+const BUBBLE_DURATION := 3.0
+const BUBBLE_MAX_SECONDARY := 2
+const BUBBLE_SECONDARY_RANGE := 7.5
+const BUBBLE_RADIUS := 2.5
+
+# pilar de fogo (E)
+const PILLAR_DURATION := 2.5
+const PILLAR_RADIUS := 5.0
+const PILLAR_TICK_RATE := 0.2
+
+# superataque (R)
+const SUPER_EXPLOSION_RADIUS := 12.5
+const SUPER_STUN_DURATION := 1.5
 
 const MAX_MANA := 30
-const MANA_REGEN := 4.0  # por segundo
+const MANA_REGEN := 4.0
 
-# dash (E)
-const DASH_SPEED := 760.0
-const DASH_TIME := 0.13
+const ENEMY_LAYER_MASK := 4  # layer 3 "enemies"
 
 var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
-var _dash_time_left := 0.0
-var _dash_dir := Vector2.ZERO
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -39,10 +52,11 @@ const ROW_SIDE := 2
 var _anim_time := 0.0
 var _facing_row := ROW_DOWN
 
-@onready var _sprite: Sprite2D = %Sprite
+@onready var _sprite: Sprite3D = %Sprite
 
-var _target := Vector2.ZERO
+var _target := Vector3.ZERO
 var _moving := false
+var _just_pressed := {}  # physical_keycode -> true (limpo a cada tick de física)
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
@@ -64,14 +78,25 @@ func _emit_initial_status() -> void:
 
 func _on_hit_received(_hitbox: HitboxComponent) -> void:
 	EventBus.player_damaged.emit(_hitbox.damage, health.health)
-	# flash vermelho de dano
-	modulate = Color(2.5, 0.6, 0.6)
-	create_tween().tween_property(self, "modulate", Color.WHITE, 0.2)
+	# flash vermelho de dano (modulate no sprite — Node3D não tem modulate)
+	_sprite.modulate = Color(2.5, 0.6, 0.6)
+	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.2)
 
 
 func _on_died() -> void:
 	# morte por enquanto = recomeçar a cena (respawn instantâneo)
 	get_tree().reload_current_scene.call_deferred()
+
+
+## Buffer de "acabou de apertar" por tecla física — Input.is_key_just_pressed()
+## NÃO existe na API do Godot (erro nº 3 do ERROS_GODOT.md).
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		_just_pressed[event.physical_keycode] = true
+
+
+func _key_just_pressed(key: Key) -> bool:
+	return _just_pressed.has(key)
 
 
 func _physics_process(delta: float) -> void:
@@ -80,45 +105,82 @@ func _physics_process(delta: float) -> void:
 			_cooldowns[i] -= delta
 	_regen_mana(delta)
 
-	# dash em andamento sobrepõe o resto do movimento
-	if _dash_time_left > 0.0:
-		_dash_time_left -= delta
-		velocity = _dash_dir * DASH_SPEED
-		move_and_slide()
-		if _dash_time_left <= 0.0:
-			_end_dash()
-		return
-
 	for i in 4:
-		if Input.is_action_just_pressed("skill_%d" % (i + 1)) and _can_cast(i):
+		if _skill_key_pressed(i) and _can_cast(i):
 			_cast(i)
 
-	# segurar o botão direito = seguir o cursor (estilo Diablo)
+	if GameState.control_scheme == "wasd":
+		_move_wasd()
+	else:
+		_move_click()
+
+	_update_animation(delta)
+	_just_pressed.clear()
+
+
+## Segurar o botão direito = seguir o cursor (estilo Diablo).
+func _move_click() -> void:
 	if Input.is_action_pressed("move_click"):
-		_target = get_global_mouse_position()
+		_target = Iso.mouse_ground_position(self)
 		_moving = true
 
 	if _moving:
 		var to_target := _target - global_position
+		to_target.y = 0.0
 		if to_target.length() <= ARRIVE_DISTANCE:
 			_moving = false
-			velocity = Vector2.ZERO
+			velocity = Vector3.ZERO
 		else:
 			velocity = to_target.normalized() * SPEED
 			move_and_slide()
 
-	_update_animation(delta)
+
+## WASD direto, sem click-to-move.
+func _move_wasd() -> void:
+	var dir := Vector3.ZERO
+	if Input.is_key_pressed(KEY_D):
+		dir.x += 1
+	if Input.is_key_pressed(KEY_A):
+		dir.x -= 1
+	if Input.is_key_pressed(KEY_S):
+		dir.z += 1
+	if Input.is_key_pressed(KEY_W):
+		dir.z -= 1
+
+	_moving = dir.length() > 0.0
+	if _moving:
+		velocity = dir.normalized() * SPEED
+		move_and_slide()
+	else:
+		velocity = Vector3.ZERO
+
+
+## Tecla da skill depende do esquema de controle ativo (número sempre funciona).
+func _skill_key_pressed(slot: int) -> bool:
+	if _key_just_pressed(KEY_1 + slot):
+		return true
+	var wasd := GameState.control_scheme == "wasd"
+	match slot:
+		0:
+			return _key_just_pressed(KEY_Q)
+		1:
+			return _key_just_pressed(KEY_E if wasd else KEY_W)
+		2:
+			return _key_just_pressed(KEY_C if wasd else KEY_E)
+		3:
+			return _key_just_pressed(KEY_R)
+	return false
 
 
 func _update_animation(delta: float) -> void:
-	var walking := _moving and velocity.length() > 1.0
+	var walking := _moving and velocity.length() > 0.1
 	if walking:
-		# direção dominante decide a linha do spritesheet
-		if absf(velocity.x) > absf(velocity.y):
+		# direção dominante decide a linha do spritesheet (tela: -Z = cima)
+		if absf(velocity.x) > absf(velocity.z):
 			_facing_row = ROW_SIDE
 			_sprite.flip_h = velocity.x < 0
 		else:
-			_facing_row = ROW_UP if velocity.y < 0 else ROW_DOWN
+			_facing_row = ROW_UP if velocity.z < 0 else ROW_DOWN
 		_anim_time += delta
 	else:
 		_anim_time = 0.0
@@ -146,47 +208,59 @@ func _cast(slot: int) -> void:
 	EventBus.skill_cooldown_started.emit(slot, SKILL_COOLDOWN[slot])
 	EventBus.skill_cast.emit(slot, null)
 	match slot:
-		0: _cast_bolt()
-		1: _cast_nova()
-		2: _cast_dash()
-		3: _cast_meteor_shower()
+		0: _cast_lightning()
+		1: _cast_bubble()
+		2: _cast_pillar()
+		3: _cast_super()
 
 
-func _cast_bolt() -> void:
-	var origin := global_position + CAST_OFFSET
-	var bolt: MagicBolt = BOLT_SCENE.instantiate()
-	bolt.direction = (get_global_mouse_position() - origin).normalized()
-	bolt.position = origin
-	get_tree().current_scene.add_child(bolt)
+func _cast_lightning() -> void:
+	var lightning: Node3D = LIGHTNING_SCENE.instantiate()
+	lightning.position = global_position + CAST_OFFSET
+	lightning.target = Iso.mouse_ground_position(self) + Vector3(0, CAST_OFFSET.y, 0)
+	lightning.player = self
+	get_tree().current_scene.add_child(lightning)
 
 
-func _cast_nova() -> void:
-	var nova: Node2D = NOVA_SCENE.instantiate()
-	nova.position = global_position + Vector2(0, -8)
-	get_tree().current_scene.add_child(nova)
+func _cast_bubble() -> void:
+	var bubble: Node3D = BUBBLE_SCENE.instantiate()
+	bubble.position = Iso.mouse_ground_position(self)
+	bubble.player = self
+	get_tree().current_scene.add_child(bubble)
 
 
-func _cast_dash() -> void:
-	_dash_dir = (get_global_mouse_position() - global_position).normalized()
-	if _dash_dir == Vector2.ZERO:
-		_dash_dir = Vector2.RIGHT
-	_dash_time_left = DASH_TIME
-	_moving = false
-	hurtbox.set_deferred("monitorable", false)  # i-frames durante o dash
-	modulate = Color(0.7, 1.4, 1.6, 0.7)
+func _cast_pillar() -> void:
+	var pillar: Node3D = PILLAR_SCENE.instantiate()
+	pillar.position = Iso.mouse_ground_position(self)
+	pillar.player = self
+	get_tree().current_scene.add_child(pillar)
 
 
-func _end_dash() -> void:
-	hurtbox.set_deferred("monitorable", true)
-	modulate = Color.WHITE
+func _cast_super() -> void:
+	var target_pos := Iso.mouse_ground_position(self)
+	global_position = target_pos
 
+	# encontra inimigos na área usando PhysicsShapeQuery 3D
+	var space_state := get_world_3d().direct_space_state
+	var query := PhysicsShapeQueryParameters3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = SUPER_EXPLOSION_RADIUS
+	query.shape = sphere
+	query.transform = Transform3D(Basis(), target_pos + Vector3(0, 0.75, 0))
+	query.collision_mask = ENEMY_LAYER_MASK
 
-func _cast_meteor_shower() -> void:
-	var center := get_global_mouse_position()
-	for i in METEOR_COUNT:
-		var ang := randf() * TAU
-		var r := sqrt(randf()) * METEOR_SPREAD  # distribuição uniforme no disco
-		var meteor: Node2D = METEOR_SCENE.instantiate()
-		meteor.position = center + Vector2(cos(ang), sin(ang)) * r
-		meteor.start_delay = i * METEOR_STAGGER
-		get_tree().current_scene.add_child(meteor)
+	var results := space_state.intersect_shape(query)
+
+	for result in results:
+		var collider: Object = result.collider
+		if collider is Node3D and collider.is_in_group("enemies"):
+			var hitbox := HitboxComponent.new()
+			hitbox.damage = 50
+			hitbox.stun_duration = SUPER_STUN_DURATION
+			if collider.has_node("Hurtbox"):
+				collider.get_node("Hurtbox").take_hit(hitbox)  # aplica dano de verdade (emit puro pulava take_damage)
+			hitbox.queue_free()
+
+	# efeito visual
+	_sprite.modulate = Color(1.5, 1.0, 2.0)
+	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)

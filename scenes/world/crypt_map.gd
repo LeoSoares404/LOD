@@ -1,29 +1,32 @@
-extends Node2D
-## Cripta — chão em arte HD (imagem) + emblema de runas no centro.
-## Boundaries por paredes de colisão invisíveis nas bordas.
-## Props altos (colunas/obeliscos) com Y-sort — o player passa atrás.
+extends Node3D
+## Cripta 2.5D — chão em mesh com a textura HD ladrilhada + emblema de runas
+## deitado no centro. Boundaries por paredes de colisão invisíveis nas bordas.
+## Props altos (colunas/obeliscos) como Sprite3D em pé — a profundidade real
+## do 3D substitui o Y-sort.
 
-const MAP_W := 960
-const MAP_H := 544
-const WALL := 16  # espessura das paredes de colisão invisíveis
+const MAP_W := 60.0   # m (era 960 px; 16 px = 1 m)
+const MAP_H := 34.0   # m (era 544 px)
+const WALL := 1.0     # espessura das paredes invisíveis
+const WALL_HEIGHT := 4.0
+const PIXEL_SIZE := 1.0 / Iso.PPM  # 0.0625 m por pixel da arte
 
 const FLOOR_TEX := preload("res://image/chao2.jpg")
-const FLOOR_TILE_WORLD := 120.0  # tamanho de UMA cópia da textura em px de mundo
-const EMBLEM_TEX := preload("res://assets/sprites/props/emblem.png")  # fundo já recortado
+const FLOOR_TILE_WORLD := 7.5  # tamanho de UMA cópia da textura em m (era 120 px)
+const EMBLEM_TEX := preload("res://assets/sprites/props/emblem.png")
 const COLUMN_TEX := preload("res://assets/sprites/props/column.png")
 const OBELISK_TEX := preload("res://assets/sprites/props/obelisk.png")
 const GLOW_TEX := preload("res://assets/sprites/props/glow_gradient.tres")
 
-const EMBLEM_CENTER := Vector2(500, 272)
-const EMBLEM_DIAMETER := 175.0  # altura-alvo do emblema em px de mundo
+const EMBLEM_CENTER := Vector3(31.25, 0.02, 17.0)
+const EMBLEM_DIAMETER := 10.9  # extensão-alvo do emblema em m (era 175 px)
 
-# posições em px do PONTO DA BASE de cada prop (Y-sort ordena por ela)
-const COLUMNS: Array[Vector2] = [
-	Vector2(150, 170), Vector2(810, 170),
-	Vector2(150, 470), Vector2(810, 470),
+# posições (m) do PONTO DA BASE de cada prop
+const COLUMNS: Array[Vector3] = [
+	Vector3(9.4, 0, 10.6), Vector3(50.6, 0, 10.6),
+	Vector3(9.4, 0, 29.4), Vector3(50.6, 0, 29.4),
 ]
-const OBELISKS: Array[Vector2] = [
-	Vector2(330, 110), Vector2(630, 110),
+const OBELISKS: Array[Vector3] = [
+	Vector3(20.6, 0, 6.9), Vector3(39.4, 0, 6.9),
 ]
 
 
@@ -35,61 +38,72 @@ func _ready() -> void:
 
 
 func _add_floor() -> void:
-	# textura ladrilhada: repete pelo mapa (region maior que a textura + repeat)
-	var floor_spr := Sprite2D.new()
-	floor_spr.texture = FLOOR_TEX
-	floor_spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # reduz shimmer ao mover
-	floor_spr.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	floor_spr.centered = false
-	floor_spr.region_enabled = true
-	var k := FLOOR_TILE_WORLD / FLOOR_TEX.get_width()
-	floor_spr.scale = Vector2(k, k)
-	floor_spr.region_rect = Rect2(0, 0, MAP_W / k, MAP_H / k)
-	floor_spr.position = Vector2.ZERO
-	floor_spr.z_index = -20
-	add_child(floor_spr)
+	var mi := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(MAP_W, MAP_H)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = FLOOR_TEX
+	mat.albedo_color = Color(0.52, 0.66, 0.68)  # tom teal da cripta (ex-CanvasModulate)
+	mat.uv1_scale = Vector3(MAP_W / FLOOR_TILE_WORLD, MAP_H / FLOOR_TILE_WORLD, 1.0)
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # reduz shimmer
+	plane.material = mat
+	mi.mesh = plane
+	mi.position = Vector3(MAP_W / 2.0, 0.0, MAP_H / 2.0)
+	add_child(mi)
 
 
 func _add_emblem() -> void:
-	var emblem := Sprite2D.new()
+	var emblem := Sprite3D.new()
 	emblem.texture = EMBLEM_TEX
-	emblem.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	emblem.pixel_size = PIXEL_SIZE
+	emblem.rotation_degrees.x = -90.0  # deitado no chão
+	var s := EMBLEM_DIAMETER / (EMBLEM_TEX.get_height() * PIXEL_SIZE)
+	emblem.scale = Vector3(s, s, s)
 	emblem.position = EMBLEM_CENTER
-	var s := EMBLEM_DIAMETER / EMBLEM_TEX.get_height()
-	emblem.scale = Vector2(s, s)
-	emblem.z_index = -19  # acima do chão, abaixo dos personagens
 	add_child(emblem)
 
-	# glow ciano suave e pulsante sob o emblema
-	var light := PointLight2D.new()
-	light.texture = GLOW_TEX
-	light.color = Color(0.4, 1.0, 0.9)
-	light.energy = 0.5
-	light.texture_scale = 1.1
-	light.position = EMBLEM_CENTER
+	# glow ciano suave e pulsante sobre o emblema
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.4, 1.0, 0.9)
+	light.light_energy = 0.5
+	light.omni_range = 9.0
+	light.position = EMBLEM_CENTER + Vector3(0, 1.5, 0)
 	add_child(light)
 	var tw := create_tween().set_loops()
-	tw.tween_property(light, "energy", 0.9, 2.0).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(light, "energy", 0.5, 2.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(light, "light_energy", 0.9, 2.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(light, "light_energy", 0.5, 2.0).set_trans(Tween.TRANS_SINE)
 
 
 func _add_borders() -> void:
-	_add_wall(Rect2(0, 0, MAP_W, WALL))
-	_add_wall(Rect2(0, MAP_H - WALL, MAP_W, WALL))
-	_add_wall(Rect2(0, 0, WALL, MAP_H))
-	_add_wall(Rect2(MAP_W - WALL, 0, WALL, MAP_H))
+	var half_h := WALL_HEIGHT / 2.0
+	_add_wall(Vector3(MAP_W / 2.0, half_h, WALL / 2.0), Vector3(MAP_W, WALL_HEIGHT, WALL))
+	_add_wall(Vector3(MAP_W / 2.0, half_h, MAP_H - WALL / 2.0), Vector3(MAP_W, WALL_HEIGHT, WALL))
+	_add_wall(Vector3(WALL / 2.0, half_h, MAP_H / 2.0), Vector3(WALL, WALL_HEIGHT, MAP_H))
+	_add_wall(Vector3(MAP_W - WALL / 2.0, half_h, MAP_H / 2.0), Vector3(WALL, WALL_HEIGHT, MAP_H))
 
 
-func _add_wall(rect: Rect2) -> void:
-	var body := StaticBody2D.new()
+func _add_wall(center: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
 	body.collision_layer = 1  # layer "world"
 	body.collision_mask = 0
-	var shape := CollisionShape2D.new()
-	var rs := RectangleShape2D.new()
-	rs.size = rect.size
-	shape.shape = rs
-	shape.position = rect.position + rect.size / 2.0
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	body.position = center
 	body.add_child(shape)
+
+	# volume visível — antes era só colisão invisível, o que deixava o mapa
+	# sem profundidade (paredes existiam pro player, não pros olhos)
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.16, 0.22, 0.24)
+	mesh.material = mat
+	mi.mesh = mesh
+	body.add_child(mi)
+
 	add_child(body)
 
 
@@ -100,41 +114,42 @@ func _spawn_props() -> void:
 		_add_prop(OBELISK_TEX, pos, true)
 
 
-## Prop alto: sprite com a BASE no ponto dado (pivô nos pés → Y-sort correto)
-## + colisão pequena só na base, pra dar pra andar por trás.
-func _add_prop(tex: Texture2D, pos: Vector2, glow := false) -> void:
-	var spr := Sprite2D.new()
+## Prop alto: sprite em pé com a BASE no ponto dado + colisão pequena na base,
+## pra dar pra andar por trás (a profundidade 3D resolve a oclusão).
+func _add_prop(tex: Texture2D, pos: Vector3, glow := false) -> void:
+	var h := tex.get_height() * PIXEL_SIZE
+	var spr := Sprite3D.new()
 	spr.texture = tex
-	spr.centered = false
-	spr.offset = Vector2(-tex.get_width() / 2.0, -float(tex.get_height()))
-	spr.position = pos
+	spr.pixel_size = PIXEL_SIZE
+	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	spr.position = pos + Vector3(0, h / 2.0, 0)
+	add_child(spr)
 
-	var shadow := Sprite2D.new()
+	var shadow := Sprite3D.new()
 	shadow.texture = GLOW_TEX
+	shadow.pixel_size = PIXEL_SIZE
 	shadow.modulate = Color(0, 0, 0, 0.45)
-	shadow.scale = Vector2(0.11, 0.05)
-	shadow.position = Vector2(0, -2)
-	shadow.show_behind_parent = true
-	spr.add_child(shadow)
+	shadow.rotation_degrees.x = -90.0
+	shadow.scale = Vector3(0.11, 0.055, 1.0)
+	shadow.position = pos + Vector3(0, 0.02, 0)
+	add_child(shadow)
 
-	var body := StaticBody2D.new()
+	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
-	var shape := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = 6.0
-	shape.shape = circle
-	shape.position = Vector2(0, -4)
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.4
+	shape.shape = sphere
+	body.position = pos + Vector3(0, 0.3, 0)
 	body.add_child(shape)
-	spr.add_child(body)
+	add_child(body)
 
 	if glow:
-		var light := PointLight2D.new()
-		light.texture = GLOW_TEX
-		light.color = Color(0.55, 1.0, 0.92)
-		light.energy = 0.7
-		light.texture_scale = 0.6
-		light.position = Vector2(0, -20)
-		spr.add_child(light)
-
-	add_child(spr)
+		var light := OmniLight3D.new()
+		light.light_color = Color(0.55, 1.0, 0.92)
+		light.light_energy = 0.7
+		light.omni_range = 5.0
+		light.position = pos + Vector3(0, 1.3, 0)
+		add_child(light)

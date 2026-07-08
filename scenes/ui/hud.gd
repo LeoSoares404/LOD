@@ -3,11 +3,13 @@ extends CanvasLayer
 ## Só ESCUTA o EventBus — nunca referencia player/entidades (ARCHITECTURE.md).
 
 const SLOT_COUNT := 4
+const TOTAL_WAVES := 4  # precisa bater com WaveManager.TOTAL_WAVES
 
 @onready var health_orb: TextureRect = %HealthOrb
 @onready var mana_orb: TextureRect = %ManaOrb
 @onready var banner: Label = %WaveBanner
 @onready var counter: Label = %WaveCounter
+@onready var settings_button: Button = $SettingsButton
 
 var _cd_remaining: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var _cd_total: Array[float] = [1.0, 1.0, 1.0, 1.0]
@@ -22,6 +24,7 @@ func _ready() -> void:
 	EventBus.skill_cooldown_started.connect(_on_cooldown_started)
 	EventBus.wave_started.connect(_on_wave_started)
 	EventBus.victory.connect(_on_victory)
+	settings_button.pressed.connect(_on_settings_pressed)
 	banner.modulate.a = 0.0
 
 
@@ -51,11 +54,10 @@ func _on_cooldown_started(slot: int, duration: float) -> void:
 
 
 func _on_wave_started(wave: int, is_boss: bool) -> void:
+	counter.text = "%d/%d ondas" % [wave, TOTAL_WAVES]
 	if is_boss:
-		counter.text = "CHEFE"
 		_flash_banner("⚠ CHEFE ⚠", Color(1.0, 0.4, 0.3))
 	else:
-		counter.text = "Rodada %d" % wave
 		_flash_banner("RODADA %d" % wave, Color(0.6, 1.0, 0.95))
 
 
@@ -72,3 +74,9 @@ func _flash_banner(text: String, color: Color, hold := 1.6) -> void:
 	tw.tween_property(banner, "modulate:a", 1.0, 0.3)
 	tw.tween_interval(hold)
 	tw.tween_property(banner, "modulate:a", 0.0, 0.6)
+
+
+func _on_settings_pressed() -> void:
+	var settings_menu = get_tree().root.get_node_or_null("Main/SettingsMenu")
+	if settings_menu:
+		settings_menu.toggle_menu()

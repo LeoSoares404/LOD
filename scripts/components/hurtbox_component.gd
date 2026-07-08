@@ -1,5 +1,5 @@
 class_name HurtboxComponent
-extends Area2D
+extends Area3D
 ## Área que RECEBE dano. Separada do corpo físico (regra de ouro do projeto).
 ## Configurar no editor: collision_layer = player_hurtbox ou enemy_hurtbox,
 ## monitoring desligado (quem detecta é a hitbox).

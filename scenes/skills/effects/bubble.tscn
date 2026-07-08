@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cvhx32r6v7v7t"]
+
+[ext_resource type="Script" path="res://scenes/skills/effects/bubble.gd" id="1_script"]
+
+[node name="Bubble" type="Area3D"]
+script = ExtResource("1_script")

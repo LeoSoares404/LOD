@@ -217,3 +217,33 @@ offset_bottom = 170.0
 horizontal_alignment = 1
 vertical_alignment = 1
 label_settings = SubResource("LabelSettings_banner")
+
+[node name="ArmorIcon" type="Label" parent="."]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 50.0
+offset_bottom = 50.0
+text = "🛡
+M"
+horizontal_alignment = 1
+vertical_alignment = 1
+label_settings = SubResource("LabelSettings_counter")
+
+[node name="InventoryIcon" type="Label" parent="."]
+offset_left = 55.0
+offset_top = 10.0
+offset_right = 95.0
+offset_bottom = 50.0
+text = "🎒
+I"
+horizontal_alignment = 1
+vertical_alignment = 1
+label_settings = SubResource("LabelSettings_counter")
+
+[node name="SettingsButton" type="Button" parent="."]
+offset_left = 100.0
+offset_top = 10.0
+offset_right = 140.0
+offset_bottom = 50.0
+text = "⚙
+O"

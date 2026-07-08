@@ -9,10 +9,10 @@ extends HitboxComponent
 
 func _ready() -> void:
 	super()
-	var flash: Sprite2D = $Flash
-	flash.scale = Vector2(0.05, 0.05)
+	var flash: Sprite3D = $Flash
+	flash.scale = Vector3(0.05, 0.05, 0.05)
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(flash, "scale", Vector2(grow_to, grow_to), lifetime)
+	tw.tween_property(flash, "scale", Vector3(grow_to, grow_to, grow_to), lifetime)
 	tw.tween_property(flash, "modulate:a", 0.0, lifetime)
 	get_tree().create_timer(lifetime).timeout.connect(func() -> void: queue_free())
