@@ -4,31 +4,38 @@ extends CharacterBody2D
 const SPEED := 90.0  # px/s (~5.6 tiles/s)
 const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "vibrar"
 
-const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
-const NOVA_SCENE := preload("res://scenes/entities/projectiles/arcane_nova.tscn")
-const METEOR_SCENE := preload("res://scenes/entities/projectiles/meteor.tscn")
-const CAST_OFFSET := Vector2(0, -12)  # projéteis nascem no peito, não nos pés
+const LIGHTNING_SCENE := preload("res://scenes/skills/projectiles/lightning_bolt.tscn")
+const BUBBLE_SCENE := preload("res://scenes/skills/effects/bubble.tscn")
+const PILLAR_SCENE := preload("res://scenes/skills/effects/fire_pillar.tscn")
+const CAST_OFFSET := Vector2(0, -12)
 
-# slots: 0=Q bolt · 1=W nova (stun) · 2=E dash · 3=R chuva de meteoros
-const SKILL_COOLDOWN := [0.4, 4.5, 2.5, 13.0]
-const SKILL_MANA := [5, 12, 6, 24]
+# slots: 0=Q raio · 1=W bolha · 2=E pilar de fogo · 3=R superataque
+const SKILL_COOLDOWN := [0.6, 5.0, 3.5, 15.0]
+const SKILL_MANA := [8, 14, 10, 28]
 
-# chuva de meteoros (R)
-const METEOR_COUNT := 8
-const METEOR_SPREAD := 95.0     # raio de queda ao redor do cursor
-const METEOR_STAGGER := 0.11    # s entre cada meteoro
+# raio (Q)
+const LIGHTNING_BOUNCES := 3
+const LIGHTNING_BOUNCE_RANGE := 150.0
+
+# bolha (W)
+const BUBBLE_DURATION := 3.0
+const BUBBLE_MAX_SECONDARY := 2
+const BUBBLE_SECONDARY_RANGE := 120.0
+
+# pilar de fogo (E)
+const PILLAR_DURATION := 2.5
+const PILLAR_RADIUS := 80.0
+const PILLAR_TICK_RATE := 0.2
+
+# superataque (R)
+const SUPER_EXPLOSION_RADIUS := 200.0
+const SUPER_STUN_DURATION := 1.5
 
 const MAX_MANA := 30
-const MANA_REGEN := 4.0  # por segundo
-
-# dash (E)
-const DASH_SPEED := 760.0
-const DASH_TIME := 0.13
+const MANA_REGEN := 4.0
 
 var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
-var _dash_time_left := 0.0
-var _dash_dir := Vector2.ZERO
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -79,15 +86,6 @@ func _physics_process(delta: float) -> void:
 		if _cooldowns[i] > 0.0:
 			_cooldowns[i] -= delta
 	_regen_mana(delta)
-
-	# dash em andamento sobrepõe o resto do movimento
-	if _dash_time_left > 0.0:
-		_dash_time_left -= delta
-		velocity = _dash_dir * DASH_SPEED
-		move_and_slide()
-		if _dash_time_left <= 0.0:
-			_end_dash()
-		return
 
 	for i in 4:
 		if Input.is_action_just_pressed("skill_%d" % (i + 1)) and _can_cast(i):
@@ -146,47 +144,57 @@ func _cast(slot: int) -> void:
 	EventBus.skill_cooldown_started.emit(slot, SKILL_COOLDOWN[slot])
 	EventBus.skill_cast.emit(slot, null)
 	match slot:
-		0: _cast_bolt()
-		1: _cast_nova()
-		2: _cast_dash()
-		3: _cast_meteor_shower()
+		0: _cast_lightning()
+		1: _cast_bubble()
+		2: _cast_pillar()
+		3: _cast_super()
 
 
-func _cast_bolt() -> void:
+func _cast_lightning() -> void:
 	var origin := global_position + CAST_OFFSET
-	var bolt: MagicBolt = BOLT_SCENE.instantiate()
-	bolt.direction = (get_global_mouse_position() - origin).normalized()
-	bolt.position = origin
-	get_tree().current_scene.add_child(bolt)
+	var lightning: Node2D = LIGHTNING_SCENE.instantiate()
+	lightning.position = origin
+	lightning.target = get_global_mouse_position()
+	lightning.player = self
+	get_tree().current_scene.add_child(lightning)
 
 
-func _cast_nova() -> void:
-	var nova: Node2D = NOVA_SCENE.instantiate()
-	nova.position = global_position + Vector2(0, -8)
-	get_tree().current_scene.add_child(nova)
+func _cast_bubble() -> void:
+	var bubble: Node2D = BUBBLE_SCENE.instantiate()
+	bubble.position = get_global_mouse_position()
+	bubble.player = self
+	get_tree().current_scene.add_child(bubble)
 
 
-func _cast_dash() -> void:
-	_dash_dir = (get_global_mouse_position() - global_position).normalized()
-	if _dash_dir == Vector2.ZERO:
-		_dash_dir = Vector2.RIGHT
-	_dash_time_left = DASH_TIME
-	_moving = false
-	hurtbox.set_deferred("monitorable", false)  # i-frames durante o dash
-	modulate = Color(0.7, 1.4, 1.6, 0.7)
+func _cast_pillar() -> void:
+	var pillar: Node2D = PILLAR_SCENE.instantiate()
+	pillar.position = get_global_mouse_position()
+	pillar.player = self
+	get_tree().current_scene.add_child(pillar)
 
 
-func _end_dash() -> void:
-	hurtbox.set_deferred("monitorable", true)
-	modulate = Color.WHITE
+func _cast_super() -> void:
+	var target_pos := get_global_mouse_position()
+	global_position = target_pos
 
+	# encontra inimigos na área usando PhysicsShapeQuery
+	var space_state = get_world_2d().direct_space_state
+	var query = PhysicsShapeQueryParameters2D.new()
+	query.shape = CircleShape2D.new()
+	query.shape.radius = SUPER_EXPLOSION_RADIUS
+	query.transform = Transform2D.IDENTITY.translated(target_pos)
 
-func _cast_meteor_shower() -> void:
-	var center := get_global_mouse_position()
-	for i in METEOR_COUNT:
-		var ang := randf() * TAU
-		var r := sqrt(randf()) * METEOR_SPREAD  # distribuição uniforme no disco
-		var meteor: Node2D = METEOR_SCENE.instantiate()
-		meteor.position = center + Vector2(cos(ang), sin(ang)) * r
-		meteor.start_delay = i * METEOR_STAGGER
-		get_tree().current_scene.add_child(meteor)
+	var results = space_state.intersect_shape(query)
+
+	for result in results:
+		if result.collider is Ghoul:
+			var hitbox = HitboxComponent.new()
+			hitbox.damage = 50
+			hitbox.stun_duration = SUPER_STUN_DURATION
+			if result.collider.has_node("Hurtbox"):
+				result.collider.get_node("Hurtbox").hit_received.emit(hitbox)
+
+	# efeito visual
+	var tween := create_tween()
+	modulate = Color(1.5, 1.0, 2.0)
+	tween.tween_property(self, "modulate", Color.WHITE, 0.3)

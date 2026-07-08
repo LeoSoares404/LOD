@@ -13,6 +13,9 @@ const FLOAT_AMP := 3.0      # px de flutuação vertical
 const FLOAT_SPEED := 3.2
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/enemy_bolt.tscn")
+const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
+
+var _attack_count := 0
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
@@ -54,7 +57,11 @@ func _physics_process(delta: float) -> void:
 		_shoot_timer -= delta
 		if _shoot_timer <= 0.0:
 			_shoot_timer = SHOOT_INTERVAL
-			_shoot(to_player.normalized())
+			_attack_count += 1
+			if _attack_count % 2 == 0:
+				_shoot_trident(to_player.normalized())
+			else:
+				_shoot(to_player.normalized())
 
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
@@ -66,13 +73,25 @@ func _physics_process(delta: float) -> void:
 
 
 func _shoot(dir: Vector2) -> void:
-	# tranco ao atirar (relativo à escala base HD)
 	_sprite.scale = _base_spr_scale * Vector2(1.1, 0.92)
 	create_tween().tween_property(_sprite, "scale", _base_spr_scale, 0.25).set_trans(Tween.TRANS_BACK)
 	var bolt: EnemyBolt = BOLT_SCENE.instantiate()
 	bolt.direction = dir
 	bolt.position = global_position + Vector2(0, -20)
 	get_tree().current_scene.add_child(bolt)
+
+
+func _shoot_trident(dir: Vector2) -> void:
+	_sprite.scale = _base_spr_scale * Vector2(1.2, 0.85)
+	create_tween().tween_property(_sprite, "scale", _base_spr_scale, 0.3).set_trans(Tween.TRANS_BACK)
+
+	var angles = [-0.4, 0.0, 0.4]  # 3 bolas em leque
+	for angle_offset in angles:
+		var rotated_dir = dir.rotated(angle_offset)
+		var bolt: EnemyBolt = BOLT_SCENE.instantiate()
+		bolt.direction = rotated_dir
+		bolt.position = global_position + Vector2(0, -20)
+		get_tree().current_scene.add_child(bolt)
 
 
 func _on_hit_received(hitbox: HitboxComponent) -> void:
@@ -86,6 +105,12 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 	if hitbox.knockback_force > 0.0:
 		_knockback = (global_position - hitbox.global_position).normalized() \
 			* hitbox.knockback_force * KNOCKBACK_RESIST
+
+	# mostra número de dano
+	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+	dmg_num.text = "-%d" % hitbox.damage
+	dmg_num.position = global_position + Vector2(randf_range(-10, 10), -30)
+	get_tree().current_scene.add_child(dmg_num)
 
 
 func _on_died() -> void:

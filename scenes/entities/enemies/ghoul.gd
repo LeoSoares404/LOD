@@ -9,6 +9,8 @@ const STOP_DISTANCE := 4.0  # px — não fica "empurrando" em cima do alvo
 const KNOCKBACK_DECAY := 600.0  # px/s² — quão rápido o empurrão dissipa
 const STUN_TINT := Color(0.6, 0.8, 1.6)  # azul brilhante enquanto atordoado
 
+const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
+
 const ANIM_FPS := 7.0
 
 var _knockback := Vector2.ZERO
@@ -73,6 +75,12 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		create_tween().tween_property(self, "modulate", Color.WHITE, 0.15)
 	if hitbox.knockback_force > 0.0:
 		_knockback = (global_position - hitbox.global_position).normalized() * hitbox.knockback_force
+
+	# mostra número de dano
+	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+	dmg_num.text = "-%d" % hitbox.damage
+	dmg_num.position = global_position + Vector2(randf_range(-10, 10), -30)
+	get_tree().current_scene.add_child(dmg_num)
 
 
 func _on_died() -> void:
