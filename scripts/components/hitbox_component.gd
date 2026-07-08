@@ -6,6 +6,7 @@ extends Area2D
 
 @export var damage := 1
 @export var knockback_force := 0.0
+@export var stun_duration := 0.0  # s de atordoamento aplicado ao alvo (0 = nenhum)
 ## 0 = dano só ao encostar (projétil). > 0 = também re-aplica a cada N segundos
 ## enquanto encostado (contato de inimigo, aura).
 @export var tick_interval := 0.0

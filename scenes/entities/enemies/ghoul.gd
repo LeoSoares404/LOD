@@ -7,8 +7,10 @@ extends CharacterBody2D
 const SPEED := 55.0
 const STOP_DISTANCE := 4.0  # px — não fica "empurrando" em cima do alvo
 const KNOCKBACK_DECAY := 600.0  # px/s² — quão rápido o empurrão dissipa
+const STUN_TINT := Color(0.6, 0.8, 1.6)  # azul brilhante enquanto atordoado
 
 var _knockback := Vector2.ZERO
+var _stun_time := 0.0
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
@@ -23,6 +25,16 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# atordoado: não persegue, só sofre o resíduo do empurrão
+	if _stun_time > 0.0:
+		_stun_time -= delta
+		if _stun_time <= 0.0:
+			modulate = Color.WHITE
+		velocity = _knockback
+		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
+		move_and_slide()
+		return
+
 	var chase := Vector2.ZERO
 	if _player != null and is_instance_valid(_player):
 		var to_player := _player.global_position - global_position
@@ -34,9 +46,13 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_hit_received(hitbox: HitboxComponent) -> void:
-	# hit-flash: estoura branco (HDR) e volta ao normal
-	modulate = Color(3.0, 3.0, 3.0)
-	create_tween().tween_property(self, "modulate", Color.WHITE, 0.15)
+	if hitbox.stun_duration > 0.0:
+		_stun_time = hitbox.stun_duration
+	if _stun_time > 0.0:
+		modulate = STUN_TINT  # tom azul estável enquanto atordoado
+	else:
+		modulate = Color(3.0, 3.0, 3.0)  # hit-flash branco
+		create_tween().tween_property(self, "modulate", Color.WHITE, 0.15)
 	if hitbox.knockback_force > 0.0:
 		_knockback = (global_position - hitbox.global_position).normalized() * hitbox.knockback_force
 

@@ -118,7 +118,7 @@ offset_right = 56.0
 offset_bottom = 26.0
 
 [node name="Icon" type="TextureRect" parent="Hotbar/Slot1"]
-modulate = Color(1.5, 0.7, 2.4, 1)
+modulate = Color(2.4, 2.0, 0.7, 1)
 offset_left = 3.0
 offset_top = 3.0
 offset_right = 23.0

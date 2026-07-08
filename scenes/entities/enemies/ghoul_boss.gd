@@ -8,6 +8,7 @@ const STOP_DISTANCE := 90.0   # mantém distância para bombardear
 const KNOCKBACK_DECAY := 500.0
 const KNOCKBACK_RESIST := 0.25  # boss pesado: sofre pouco empurrão
 const SHOOT_INTERVAL := 1.5
+const STUN_TINT := Color(0.7, 0.9, 1.6)
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/enemy_bolt.tscn")
 
@@ -17,6 +18,7 @@ const BOLT_SCENE := preload("res://scenes/entities/projectiles/enemy_bolt.tscn")
 var _player: Node2D
 var _knockback := Vector2.ZERO
 var _shoot_timer := SHOOT_INTERVAL
+var _stun_time := 0.0
 
 
 func _ready() -> void:
@@ -26,6 +28,16 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# atordoado: não persegue nem atira
+	if _stun_time > 0.0:
+		_stun_time -= delta
+		if _stun_time <= 0.0:
+			modulate = Color.WHITE
+		velocity = _knockback
+		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
+		move_and_slide()
+		return
+
 	var chase := Vector2.ZERO
 	if _player != null and is_instance_valid(_player):
 		var to_player := _player.global_position - global_position
@@ -49,8 +61,13 @@ func _shoot(dir: Vector2) -> void:
 
 
 func _on_hit_received(hitbox: HitboxComponent) -> void:
-	modulate = Color(3.0, 2.0, 2.0)
-	create_tween().tween_property(self, "modulate", Color.WHITE, 0.15)
+	if hitbox.stun_duration > 0.0:
+		_stun_time = hitbox.stun_duration
+	if _stun_time > 0.0:
+		modulate = STUN_TINT
+	else:
+		modulate = Color(3.0, 2.0, 2.0)
+		create_tween().tween_property(self, "modulate", Color.WHITE, 0.15)
 	if hitbox.knockback_force > 0.0:
 		_knockback = (global_position - hitbox.global_position).normalized() \
 			* hitbox.knockback_force * KNOCKBACK_RESIST
