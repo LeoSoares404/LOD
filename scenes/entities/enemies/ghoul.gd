@@ -9,8 +9,13 @@ const STOP_DISTANCE := 4.0  # px — não fica "empurrando" em cima do alvo
 const KNOCKBACK_DECAY := 600.0  # px/s² — quão rápido o empurrão dissipa
 const STUN_TINT := Color(0.6, 0.8, 1.6)  # azul brilhante enquanto atordoado
 
+const ANIM_FPS := 7.0
+
 var _knockback := Vector2.ZERO
 var _stun_time := 0.0
+var _anim_time := 0.0
+
+@onready var _sprite: Sprite2D = $Sprite
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
@@ -43,6 +48,19 @@ func _physics_process(delta: float) -> void:
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
 	move_and_slide()
+	_animate(delta, chase.length() > 1.0)
+
+
+func _animate(delta: float, walking: bool) -> void:
+	if walking:
+		_anim_time += delta
+		@warning_ignore("integer_division")
+		_sprite.frame = 1 + int(_anim_time * ANIM_FPS) % 4
+		if absf(velocity.x) > 0.5:
+			_sprite.flip_h = velocity.x < 0
+	else:
+		_anim_time = 0.0
+		_sprite.frame = 0
 
 
 func _on_hit_received(hitbox: HitboxComponent) -> void:

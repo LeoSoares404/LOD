@@ -9,16 +9,19 @@ const KNOCKBACK_DECAY := 500.0
 const KNOCKBACK_RESIST := 0.25  # boss pesado: sofre pouco empurrão
 const SHOOT_INTERVAL := 1.5
 const STUN_TINT := Color(0.7, 0.9, 1.6)
+const FLOAT_FPS := 5.0
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/enemy_bolt.tscn")
 
 @onready var health: HealthComponent = $HealthComponent
 @onready var hurtbox: HurtboxComponent = $Hurtbox
+@onready var _sprite: Sprite2D = $Sprite
 
 var _player: Node2D
 var _knockback := Vector2.ZERO
 var _shoot_timer := SHOOT_INTERVAL
 var _stun_time := 0.0
+var _anim_time := 0.0
 
 
 func _ready() -> void:
@@ -52,8 +55,15 @@ func _physics_process(delta: float) -> void:
 	_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
 	move_and_slide()
 
+	# flutuação contínua (respiração ameaçadora)
+	_anim_time += delta
+	_sprite.frame = int(_anim_time * FLOAT_FPS) % 4
+
 
 func _shoot(dir: Vector2) -> void:
+	# tranco ao atirar
+	_sprite.scale = Vector2(1.18, 0.85)
+	create_tween().tween_property(_sprite, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
 	var bolt: EnemyBolt = BOLT_SCENE.instantiate()
 	bolt.direction = dir
 	bolt.position = global_position + Vector2(0, -20)

@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/entities/enemies/ghoul_boss.gd" id="1_boss"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/boss.png" id="2_bosstex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/boss_anim.png" id="2_bosstex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="3_glow"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
 [ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="5_hurtbox"]
@@ -47,6 +47,7 @@ texture_scale = 1.4
 [node name="Sprite" type="Sprite2D" parent="."]
 position = Vector2(0, -28)
 texture = ExtResource("2_bosstex")
+hframes = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -10)

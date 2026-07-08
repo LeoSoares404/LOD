@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bg6q42fkgafq6"
-path="res://.godot/imported/ghoul.png-30430e466be6551d4cda05627a83c864.ctex"
+uid="uid://b18js382ah2kf"
+path="res://.godot/imported/boss_anim.png-3822d39da5a2eabbdab8300bbf0111f7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/enemies/ghoul.png"
-dest_files=["res://.godot/imported/ghoul.png-30430e466be6551d4cda05627a83c864.ctex"]
+source_file="res://assets/sprites/enemies/boss_anim.png"
+dest_files=["res://.godot/imported/boss_anim.png-3822d39da5a2eabbdab8300bbf0111f7.ctex"]
 
 [params]
 

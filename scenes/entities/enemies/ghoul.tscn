@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scenes/entities/enemies/ghoul.gd" id="1_ghoul"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ghoul.png" id="2_ghoultex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ghoul_walk.png" id="2_ghoultex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="3_glow"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
 [ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="5_hurtbox"]
@@ -36,6 +36,7 @@ texture = ExtResource("3_glow")
 [node name="Sprite" type="Sprite2D" parent="."]
 position = Vector2(0, -12)
 texture = ExtResource("2_ghoultex")
+hframes = 5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -5)
