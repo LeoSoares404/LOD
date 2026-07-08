@@ -47,7 +47,7 @@ func _spawn_ghouls(count: int) -> void:
 
 func _spawn_boss() -> void:
 	_active = true
-	_spawn(BOSS_SCENE.instantiate(), Vector2(MAP_W / 2.0, 110))
+	_spawn(BOSS_SCENE.instantiate(), Vector2(MAP_W / 2.0, 170))
 
 
 func _spawn(enemy: Node2D, pos: Vector2) -> void:
