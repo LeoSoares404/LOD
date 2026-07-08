@@ -6,12 +6,17 @@ const ARRIVE_DISTANCE := 4.0  # px — perto o bastante do alvo para parar sem "
 
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
 const NOVA_SCENE := preload("res://scenes/entities/projectiles/arcane_nova.tscn")
+const METEOR_SCENE := preload("res://scenes/entities/projectiles/meteor.tscn")
 const CAST_OFFSET := Vector2(0, -12)  # projéteis nascem no peito, não nos pés
 
-# slots: 0=Q bolt · 1=W nova · 2=E dash · 3=R tempestade
-const SKILL_COOLDOWN := [0.4, 4.5, 2.5, 12.0]
-const SKILL_MANA := [5, 12, 6, 22]
-const BARRAGE_COUNT := 12  # projéteis da Tempestade Arcana (R)
+# slots: 0=Q bolt · 1=W nova (stun) · 2=E dash · 3=R chuva de meteoros
+const SKILL_COOLDOWN := [0.4, 4.5, 2.5, 13.0]
+const SKILL_MANA := [5, 12, 6, 24]
+
+# chuva de meteoros (R)
+const METEOR_COUNT := 8
+const METEOR_SPREAD := 95.0     # raio de queda ao redor do cursor
+const METEOR_STAGGER := 0.11    # s entre cada meteoro
 
 const MAX_MANA := 30
 const MANA_REGEN := 4.0  # por segundo
@@ -144,7 +149,7 @@ func _cast(slot: int) -> void:
 		0: _cast_bolt()
 		1: _cast_nova()
 		2: _cast_dash()
-		3: _cast_barrage()
+		3: _cast_meteor_shower()
 
 
 func _cast_bolt() -> void:
@@ -176,11 +181,12 @@ func _end_dash() -> void:
 	modulate = Color.WHITE
 
 
-func _cast_barrage() -> void:
-	var origin := global_position + CAST_OFFSET
-	for i in BARRAGE_COUNT:
-		var dir := Vector2.RIGHT.rotated(TAU * i / BARRAGE_COUNT)
-		var bolt: MagicBolt = BOLT_SCENE.instantiate()
-		bolt.direction = dir
-		bolt.position = origin
-		get_tree().current_scene.add_child(bolt)
+func _cast_meteor_shower() -> void:
+	var center := get_global_mouse_position()
+	for i in METEOR_COUNT:
+		var ang := randf() * TAU
+		var r := sqrt(randf()) * METEOR_SPREAD  # distribuição uniforme no disco
+		var meteor: Node2D = METEOR_SCENE.instantiate()
+		meteor.position = center + Vector2(cos(ang), sin(ang)) * r
+		meteor.start_delay = i * METEOR_STAGGER
+		get_tree().current_scene.add_child(meteor)
