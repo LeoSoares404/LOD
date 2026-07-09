@@ -33,6 +33,23 @@ O código já era 3D de verdade (`Node3D`, `CharacterBody3D`, `Sprite3D`), mas v
 
 Referência visual usada como alvo: `referencia.jpeg` (isométrico com perspectiva visível, sombras fortes, terreno com relevo).
 
+## Sessão de UI + tela inicial (Leo + Claude, 08/07/2026)
+
+Depois de adotar esta branch na `main` (merge), o foco foi identidade visual da UI e a tela inicial.
+
+- **Direção de arte fixada:** o **ciano/teal é só o tema desta cripta** — o jogo terá várias criptas (fogo/terra/veneno...). Tema geral = **dark fantasy, paleta saturada**. Por isso a UI é **neutra**: molduras **bronze/dourado sobre escuro**, não teal.
+- **Fonte 8-bit** (Press Start 2P) em toda a UI via tema padrão do projeto (`assets/ui/ui_theme.tres`, `gui/theme/custom`).
+- **Menu de pausa (ESC)** reformado: usa uma **moldura pixel-art** dark-fantasy (`assets/sprites/ui/pause_frame.png`, recortada de arte de IA) como fundo; duas páginas — **Pausa** (Continuar / Configuração / Sair) e **Configuração** (Áudio + Estilo de jogo Clássico[mouse]/Moderno[WASD]). Conteúdo medido e encaixado no centro da moldura.
+- **Inventário** movido pro canto inferior direito com **ícone HD de mochila**; o antigo botão de settings saiu do HUD (virou a Configuração dentro da pausa).
+- **Tela inicial** (`scenes/ui/main_menu.tscn`, agora é o `run/main_scene`): título "LOD / Legends of Darkness", **Novo Jogo / Configuração / Sair**.
+- **Classes:** Novo Jogo abre a **escolha de classe** — Mago / Arqueiro / Lutador, cada card com descrição + barras de atributo. Definições em `GameState.CLASSES`; a escolhida vai pra `GameState.selected_class`. É a **base do personagem salvo do multiplayer** (rede/save ainda não implementados).
+
+### Pendências desta frente
+- **Aplicar os atributos da classe no player** (hoje só guarda a classe).
+- Padronizar os **outros menus** (armadura/gems/skills/inventário) com a mesma moldura + fonte.
+- **Estilizar os botões** (ainda no cinza padrão do Godot).
+- **Wallpaper** dark-fantasy pixel na tela inicial (em geração por IA).
+
 ## Em aberto / próximos passos possíveis
 
 - Paredes ainda são cor sólida (placeholder) — falta textura de pedra real.
