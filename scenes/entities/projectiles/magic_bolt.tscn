@@ -17,13 +17,13 @@ knockback_force = 8.75
 shape = SubResource("SphereShape3D_bolt")
 
 [node name="Sprite" type="Sprite3D" parent="."]
-modulate = Color(0.4, 2.6, 2.2, 1)
-scale = Vector3(0.09, 0.055, 1)
+modulate = Color(1.7, 0.8, 3, 1)
+scale = Vector3(0.075, 0.075, 1)
 pixel_size = 0.0625
 billboard = 1
 texture = ExtResource("2_glow")
 
 [node name="Light" type="OmniLight3D" parent="."]
-light_color = Color(0.55, 1, 0.92, 1)
+light_color = Color(0.7, 0.45, 1, 1)
 light_energy = 0.8
 omni_range = 3.5

@@ -38,10 +38,30 @@ const SUPER_STUN_DURATION := 1.5
 const MAX_MANA := 30
 const MANA_REGEN := 4.0
 
+# auto-attack (botão esquerdo): sem custo de mana; classe decide forma e ritmo.
+const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
+const GLOW_TEX := preload("res://assets/sprites/props/glow_gradient.tres")
+const ATTACK_COOLDOWN := {"mago": 0.5, "arqueiro": 0.26, "lutador": 0.65}
+const DEFAULT_ATTACK_COOLDOWN := 0.5
+const MELEE_RADIUS := 2.5
+const MELEE_DAMAGE := 6
+const SLASH_FX_TIME := 0.22
+
+# veneno (poças de lodo): slow enquanto dentro + dano por tempo que persiste
+const POISON_SLOW := 0.5      # multiplicador de velocidade dentro da poça
+const POISON_TICK := 1.0      # s entre ticks de dano
+const POISON_LINGER := 3.0    # s que o veneno dura após sair da poça
+const POISON_DAMAGE := 1
+
 const ENEMY_LAYER_MASK := 4  # layer 3 "enemies"
 
 var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
+var _attack_cd := 0.0
+
+var _poison_zones := 0        # quantas poças estão tocando o player
+var _poison_left := 0.0       # tempo restante do debuff de veneno
+var _poison_tick := 0.0
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -103,11 +123,17 @@ func _physics_process(delta: float) -> void:
 	for i in 4:
 		if _cooldowns[i] > 0.0:
 			_cooldowns[i] -= delta
+	if _attack_cd > 0.0:
+		_attack_cd -= delta
 	_regen_mana(delta)
+	_update_poison(delta)
 
 	for i in 4:
 		if _skill_key_pressed(i) and _can_cast(i):
 			_cast(i)
+
+	if Input.is_action_pressed("attack") and _attack_cd <= 0.0:
+		_auto_attack()
 
 	if GameState.control_scheme == "wasd":
 		_move_wasd()
@@ -131,7 +157,7 @@ func _move_click() -> void:
 			_moving = false
 			velocity = Vector3.ZERO
 		else:
-			velocity = to_target.normalized() * SPEED
+			velocity = to_target.normalized() * _speed()
 			move_and_slide()
 
 
@@ -149,7 +175,7 @@ func _move_wasd() -> void:
 
 	_moving = dir.length() > 0.0
 	if _moving:
-		velocity = dir.normalized() * SPEED
+		velocity = dir.normalized() * _speed()
 		move_and_slide()
 	else:
 		velocity = Vector3.ZERO
@@ -186,6 +212,75 @@ func _update_animation(delta: float) -> void:
 		_anim_time = 0.0
 	var col := 1 + int(_anim_time * ANIM_FPS) % 4 if walking else 0
 	_sprite.frame = _facing_row * 5 + col
+
+
+## Velocidade atual — reduzida enquanto estiver dentro de uma poça de veneno.
+func _speed() -> float:
+	return SPEED * (POISON_SLOW if _poison_zones > 0 else 1.0)
+
+
+## Chamado pelas poças de veneno do mapa (entrou = true / saiu = false).
+func set_in_poison(inside: bool) -> void:
+	_poison_zones = maxi(_poison_zones + (1 if inside else -1), 0)
+
+
+## Debuff de veneno: renovado enquanto estiver numa poça, persiste
+## POISON_LINGER s depois de sair, causando POISON_DAMAGE por tick.
+func _update_poison(delta: float) -> void:
+	if _poison_zones > 0:
+		_poison_left = POISON_LINGER
+	if _poison_left <= 0.0:
+		return
+	_poison_left -= delta
+	_poison_tick -= delta
+	if _poison_tick <= 0.0:
+		_poison_tick = POISON_TICK
+		health.take_damage(POISON_DAMAGE)
+		_sprite.modulate = Color(0.6, 2.2, 0.6)  # flash verde de veneno
+		create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+
+
+## Auto-attack (botão esquerdo): o player PARA e ataca. Lutador dá dano em
+## área ao redor de si; as outras classes atiram um projétil na mira do mouse.
+func _auto_attack() -> void:
+	_attack_cd = ATTACK_COOLDOWN.get(GameState.selected_class, DEFAULT_ATTACK_COOLDOWN)
+	_moving = false
+	velocity = Vector3.ZERO
+	if GameState.selected_class == "lutador":
+		_damage_area(global_position, MELEE_RADIUS, MELEE_DAMAGE, 0.0)
+		_slash_fx(MELEE_RADIUS)
+		_sprite.modulate = Color(2.0, 1.6, 0.8)  # flash do golpe
+		create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.15)
+	else:
+		var bolt: MagicBolt = BOLT_SCENE.instantiate()
+		bolt.position = global_position + CAST_OFFSET
+		var dir := Iso.flat_direction(global_position, Iso.mouse_ground_position(self))
+		bolt.direction = dir if dir != Vector3.ZERO else Vector3.RIGHT
+		bolt.is_arrow = GameState.selected_class == "arqueiro"
+		get_tree().current_scene.add_child(bolt)
+
+
+## Onda de choque do golpe corpo a corpo: disco no chão que abre até EXATAMENTE
+## o raio atingido pelo _damage_area e some — o jogador vê a área que bateu.
+func _slash_fx(radius: float) -> void:
+	var fx := Sprite3D.new()
+	fx.texture = GLOW_TEX
+	fx.pixel_size = 1.0 / Iso.PPM
+	fx.rotation_degrees.x = -90.0  # deitado no chão
+	fx.modulate = Color(2.4, 1.7, 0.6, 0.85)
+	fx.position = global_position + Vector3(0, 0.06, 0)
+
+	# escala 1 = textura de 256 px * pixel_size = 16 m de largura
+	var full := radius * 2.0 / (GLOW_TEX.get_width() * fx.pixel_size)
+	fx.scale = Vector3(full * 0.35, full * 0.35, 1.0)
+	get_tree().current_scene.add_child(fx)
+
+	var tw := fx.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(fx, "scale", Vector3(full, full, 1.0), SLASH_FX_TIME * 0.8) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(fx, "modulate:a", 0.0, SLASH_FX_TIME)
+	tw.chain().tween_callback(fx.queue_free)
 
 
 func _regen_mana(delta: float) -> void:
@@ -239,28 +334,29 @@ func _cast_pillar() -> void:
 func _cast_super() -> void:
 	var target_pos := Iso.mouse_ground_position(self)
 	global_position = target_pos
-
-	# encontra inimigos na área usando PhysicsShapeQuery 3D
-	var space_state := get_world_3d().direct_space_state
-	var query := PhysicsShapeQueryParameters3D.new()
-	var sphere := SphereShape3D.new()
-	sphere.radius = SUPER_EXPLOSION_RADIUS
-	query.shape = sphere
-	query.transform = Transform3D(Basis(), target_pos + Vector3(0, 0.75, 0))
-	query.collision_mask = ENEMY_LAYER_MASK
-
-	var results := space_state.intersect_shape(query)
-
-	for result in results:
-		var collider: Object = result.collider
-		if collider is Node3D and collider.is_in_group("enemies"):
-			var hitbox := HitboxComponent.new()
-			hitbox.damage = 50
-			hitbox.stun_duration = SUPER_STUN_DURATION
-			if collider.has_node("Hurtbox"):
-				collider.get_node("Hurtbox").take_hit(hitbox)  # aplica dano de verdade (emit puro pulava take_damage)
-			hitbox.queue_free()
+	_damage_area(target_pos, SUPER_EXPLOSION_RADIUS, 50, SUPER_STUN_DURATION)
 
 	# efeito visual
 	_sprite.modulate = Color(1.5, 1.0, 2.0)
 	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+
+
+## Dano instantâneo em área: esfera de PhysicsShapeQuery contra os corpos dos
+## inimigos, aplicado via Hurtbox (emit puro pulava take_damage).
+func _damage_area(center: Vector3, radius: float, damage: int, stun: float) -> void:
+	var space_state := get_world_3d().direct_space_state
+	var query := PhysicsShapeQueryParameters3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = radius
+	query.shape = sphere
+	query.transform = Transform3D(Basis(), center + Vector3(0, 0.75, 0))
+	query.collision_mask = ENEMY_LAYER_MASK
+
+	for result in space_state.intersect_shape(query):
+		var collider: Object = result.collider
+		if collider is Node3D and collider.is_in_group("enemies") and collider.has_node("Hurtbox"):
+			var hitbox := HitboxComponent.new()
+			hitbox.damage = damage
+			hitbox.stun_duration = stun
+			collider.get_node("Hurtbox").take_hit(hitbox)
+			hitbox.queue_free()
