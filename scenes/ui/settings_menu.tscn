@@ -46,19 +46,19 @@ alignment = 1
 
 [node name="Title" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 14
 text = "Pausa"
 horizontal_alignment = 1
 
 [node name="ContinueButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 8
 custom_minimum_size = Vector2(0, 26)
 text = "▶  Continuar"
 
 [node name="VolumeLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 8
 text = "Volume"
 
 [node name="VolumeSlider" type="HSlider" parent="MenuPanel/Window/VBoxContainer"]
@@ -70,7 +70,7 @@ value = 1.0
 
 [node name="ControlsLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 8
 text = "Controles"
 
 [node name="SchemeRow" type="HBoxContainer" parent="MenuPanel/Window/VBoxContainer"]
@@ -80,7 +80,7 @@ theme_override_constants/separation = 5
 [node name="MouseButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 8
 toggle_mode = true
 button_pressed = true
 button_group = SubResource("ButtonGroup_scheme")
@@ -89,20 +89,20 @@ text = "Mouse"
 [node name="WasdButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 8
 toggle_mode = true
 button_group = SubResource("ButtonGroup_scheme")
 text = "WASD"
 
 [node name="SchemeHint" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 6
 text = "WASD: Q, E, C, R"
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.55)
 
 [node name="QuitButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 8
 custom_minimum_size = Vector2(0, 26)
 text = "Sair do jogo"
