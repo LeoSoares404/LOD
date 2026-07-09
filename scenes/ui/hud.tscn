@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
 [ext_resource type="Shader" path="res://assets/shaders/orb_fill.gdshader" id="2_orb"]
@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/skill_r.png" id="8_iconr"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/orb_health.png" id="9_orbhp"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/orb_mana.png" id="10_orbmp"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/inventory_backpack.png" id="11_bag"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hp"]
 shader = ExtResource("2_orb")
@@ -230,9 +231,12 @@ vertical_alignment = 1
 label_settings = SubResource("LabelSettings_counter")
 
 [node name="InventoryButton" type="Button" parent="."]
-offset_left = 586.0
-offset_top = 306.0
+texture_filter = 1
+offset_left = 578.0
+offset_top = 300.0
 offset_right = 634.0
-offset_bottom = 354.0
-text = "🎒"
+offset_bottom = 356.0
 tooltip_text = "Inventário (I)"
+flat = true
+icon = ExtResource("11_bag")
+expand_icon = true
