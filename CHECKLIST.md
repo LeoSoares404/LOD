@@ -1,6 +1,7 @@
-# LOD — Checklist de Trabalho (pós-merge da branch do Felipe)
+# LOD — Checklist de Trabalho
 
-Estado após adotar a versão **2.5D / 3D** do Felipe como base (merge `4c86233`, 08/07/2026).
+Base: versão **2.5D / 3D** do Felipe (merge `4c86233`) + reforma de UI e tela inicial (08/07/2026).
+Tema: **dark fantasy, paleta saturada** (o ciano é só o tema da cripta atual; virão criptas de fogo/terra/veneno). UI = **pixel-art + fonte 8-bit + molduras bronze/dourado**, neutra pra qualquer cripta.
 
 Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bug · 💡 ideia futura
 
@@ -34,11 +35,23 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 - [ ] 💡 Escalar dificuldade / mais ondas / mais tipos de inimigo
 
 ## 4. UI / HUD & Menus
-- [x] ✅ HUD: orbes HD de vida/mana, hotbar Q/W/E/R com cooldown radial, contador de ondas, banner de rodada
-- [x] ✅ Menus abrem/fecham: Inventário (**I**), Armadura (**M**), Skills, Gems (**Ctrl**), Settings (engrenagem)
+- [x] ✅ HUD: orbes HD de vida/mana (com preenchimento dinâmico `orb_fill`), hotbar Q/W/E/R com cooldown radial, contador de ondas, banner de rodada
+- [x] ✅ **Fonte 8-bit** (Press Start 2P) em toda a UI via tema padrão (`assets/ui/ui_theme.tres`)
+- [x] ✅ **Menu de pausa reformado (ESC):** moldura pixel-art dark-fantasy (`pause_frame.png`), 2 páginas — Pausa (Continuar / Configuração / Sair) e Configuração (Áudio + Estilo de jogo Clássico/Moderno + Voltar); conteúdo encaixado no centro da moldura
+- [x] ✅ **Inventário** movido pro canto inferior direito com ícone HD de mochila (clicável ou tecla I)
+- [ ] 🟡 **Aplicar a moldura + fonte nos outros menus** (Armadura, Gems, Skills, Inventário interno) — ainda com layout/estilo antigo
+- [ ] 🟡 **Estilizar os botões** (fundo/borda dark-fantasy no lugar do cinza padrão do Godot)
 - [ ] 🔴 **Conflito de tecla:** Inventário **e** menu de Skills abrem ambos na tecla **I** — separar (ex.: Skills em K)
-- [ ] 🔴 **Orbes:** conferir se ainda esvaziam com vida/mana (no merge ficou a HUD do Felipe; nosso shader `orb_fill` de preenchimento dinâmico ficou de fora) — reconectar se preciso
 - [ ] 🟡 Gems no **Ctrl** (tecla-modificador) é ruim pra toggle — trocar por uma tecla normal (ex.: G)
+- [ ] 🟡 Ícone de **Armadura (🛡 M)** ainda solto no topo-esquerdo — mover/estilizar
+
+## 4b. Tela Inicial / Classes / Multiplayer
+- [x] ✅ **Tela inicial** (`main_menu.tscn`, agora é o `run/main_scene`): título "LOD / Legends of Darkness" sobre fundo de cripta, botões Novo Jogo / Configuração / Sair
+- [x] ✅ **Escolha de classe:** Mago / Arqueiro / Lutador, cada card com descrição + barras de atributo (vida/mana/dano/velocidade); "Jogar como X" entra no jogo
+- [x] ✅ Classe escolhida salva em `GameState.selected_class` (+ defs em `GameState.CLASSES`)
+- [ ] 🔴 **Aplicar os atributos da classe no player** — hoje a classe é guardada mas o player usa stats fixos; ligar isso faz a escolha ter efeito
+- [ ] 💡 **Wallpaper** da tela inicial (arte dark-fantasy pixel sendo gerada por IA) no lugar do chão de pedra
+- [ ] 💡 **Multiplayer online + save do personagem** (feature grande, adiada — "depois vemos")
 
 ## 5. Progressão (Inventário / Gems / Armadura)
 > Todos existem como interface, mas **ainda não mexem no gameplay** — é aqui que tem mais o que ligar.
@@ -62,8 +75,9 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 ---
 
 ### Prioridades sugeridas (ordem pra atacar)
-1. 🔴 Ligar **armadura** e **gems** ao gameplay (efeitos reais) — maior "buraco" hoje
-2. 🔴 Ligar o **menu de Skills** ao player (trocar skill de slot de verdade)
-3. 🔴 Resolver o **conflito de tecla I** e conferir o **fill das orbes**
-4. 🟡 Ajuste fino da **câmera** (ângulo/fov) e **textura das paredes/chão**
-5. 💡 **Loot / XP** pra dar progressão de verdade
+1. 🔴 **Aplicar atributos da classe no player** (vida/mana/dano/veloc.) — faz a escolha de classe ter efeito
+2. 🔴 Ligar **armadura** e **gems** ao gameplay (efeitos reais)
+3. 🔴 Ligar o **menu de Skills** ao player (trocar skill de slot de verdade)
+4. 🟡 Padronizar os **outros menus** com a moldura + fonte 8-bit; resolver **conflito de tecla I**
+5. 🟡 Ajuste fino da **câmera** (ângulo/fov) e **textura das paredes/chão**
+6. 💡 **Loot / XP** e **wallpaper** da tela inicial
