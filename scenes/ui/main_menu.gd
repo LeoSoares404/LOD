@@ -51,6 +51,8 @@ func _show_page(page: Control) -> void:
 	title_page.visible = page == title_page
 	class_page.visible = page == class_page
 	config_page.visible = page == config_page
+	# escurece o wallpaper nas telas cheias de conteúdo (classe/config)
+	$PageDim.visible = page != title_page
 
 
 func _build_cards() -> void:
