@@ -1,9 +1,21 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/main_menu.gd" id="1_menu"]
-[ext_resource type="Texture2D" path="res://image/chao2.jpg" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/title_bg.jpg" id="2_bg"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_scheme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_backing"]
+bg_color = Color(0.04, 0.03, 0.03, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6, 0.45, 0.2, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -16,36 +28,30 @@ script = ExtResource("1_menu")
 texture_filter = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
-modulate = Color(0.4, 0.42, 0.45, 1)
 texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Dim" type="ColorRect" parent="."]
+[node name="PageDim" type="ColorRect" parent="."]
+visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.02, 0.02, 0.04, 0.55)
-
-[node name="Title" type="Label" parent="."]
-anchor_right = 1.0
-offset_top = 34.0
-offset_bottom = 96.0
-theme_override_font_sizes/font_size = 44
-text = "LOD"
-horizontal_alignment = 1
-
-[node name="Tagline" type="Label" parent="."]
-anchor_right = 1.0
-offset_top = 92.0
-offset_bottom = 108.0
-theme_override_font_sizes/font_size = 8
-modulate = Color(0.8, 0.7, 0.4, 0.8)
-text = "Legends of Darkness"
-horizontal_alignment = 1
+color = Color(0.03, 0.022, 0.025, 1.0)
 
 [node name="TitlePage" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+
+[node name="Backing" type="Panel" parent="TitlePage"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -102.0
+offset_top = 52.0
+offset_right = 102.0
+offset_bottom = 158.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_backing")
 
 [node name="Buttons" type="VBoxContainer" parent="TitlePage"]
 anchor_left = 0.5
@@ -53,27 +59,27 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -90.0
-offset_top = -40.0
+offset_top = 60.0
 offset_right = 90.0
-offset_bottom = 70.0
-theme_override_constants/separation = 10
+offset_bottom = 152.0
+theme_override_constants/separation = 6
 
 [node name="NovoJogo" type="Button" parent="TitlePage/Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 32)
-theme_override_font_sizes/font_size = 12
+custom_minimum_size = Vector2(0, 26)
+theme_override_font_sizes/font_size = 11
 text = "Novo Jogo"
 
 [node name="Config" type="Button" parent="TitlePage/Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 32)
-theme_override_font_sizes/font_size = 12
+custom_minimum_size = Vector2(0, 26)
+theme_override_font_sizes/font_size = 11
 text = "Configuração"
 
 [node name="Sair" type="Button" parent="TitlePage/Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 32)
-theme_override_font_sizes/font_size = 12
+custom_minimum_size = Vector2(0, 26)
+theme_override_font_sizes/font_size = 11
 text = "Sair"
 
 [node name="ClassPage" type="Control" parent="."]
@@ -83,9 +89,9 @@ anchor_bottom = 1.0
 
 [node name="Header" type="Label" parent="ClassPage"]
 anchor_right = 1.0
-offset_top = 112.0
-offset_bottom = 130.0
-theme_override_font_sizes/font_size = 12
+offset_top = 34.0
+offset_bottom = 54.0
+theme_override_font_sizes/font_size = 16
 text = "Escolha sua classe"
 horizontal_alignment = 1
 
@@ -95,9 +101,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -245.0
-offset_top = -44.0
+offset_top = -70.0
 offset_right = 245.0
-offset_bottom = 122.0
+offset_bottom = 96.0
 theme_override_constants/separation = 12
 alignment = 1
 
