@@ -1,9 +1,9 @@
 extends CanvasLayer
-## Menu de configurações: volume master, esquema de controle (mouse/WASD)
-## e sair do jogo. Abre com "O". Pausa a run enquanto está aberto (reaproveita
-## GameState.toggle_pause, que já existia sem uso).
+## Menu de PAUSA (abre com ESC): pausa o jogo e concentra as configurações —
+## volume master, esquema de controle (mouse/WASD), continuar e sair.
 
 @onready var menu_panel: Panel = $MenuPanel
+@onready var continue_button: Button = $MenuPanel/VBoxContainer/ContinueButton
 @onready var volume_slider: HSlider = $MenuPanel/VBoxContainer/VolumeSlider
 @onready var mouse_button: Button = $MenuPanel/VBoxContainer/SchemeRow/MouseButton
 @onready var wasd_button: Button = $MenuPanel/VBoxContainer/SchemeRow/WasdButton
@@ -23,13 +23,14 @@ func _ready() -> void:
 	mouse_button.toggled.connect(_on_scheme_toggled.bind("mouse"))
 	wasd_button.toggled.connect(_on_scheme_toggled.bind("wasd"))
 	quit_button.pressed.connect(_on_quit_pressed)
+	continue_button.pressed.connect(toggle_menu)  # "Continuar" = fecha e despausa
 
 
-## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
-## process_mode = ALWAYS garante que o evento chega mesmo com o jogo pausado.
+## ESC abre/fecha a pausa. process_mode = ALWAYS garante que o evento chega
+## mesmo com o jogo pausado. is_key_just_pressed() não existe na API do Godot.
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo \
-			and event.physical_keycode == KEY_O:
+			and event.physical_keycode == KEY_ESCAPE:
 		toggle_menu()
 
 

@@ -27,8 +27,14 @@ theme_override_constants/separation = 14
 
 [node name="Title" type="Label" parent="MenuPanel/VBoxContainer"]
 layout_mode = 2
-text = "⚙ Configurações (O)"
+text = "⏸  Pausa"
+horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 30)
+
+[node name="ContinueButton" type="Button" parent="MenuPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "▶  Continuar"
 
 [node name="VolumeLabel" type="Label" parent="MenuPanel/VBoxContainer"]
 layout_mode = 2

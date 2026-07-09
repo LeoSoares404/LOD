@@ -229,21 +229,10 @@ horizontal_alignment = 1
 vertical_alignment = 1
 label_settings = SubResource("LabelSettings_counter")
 
-[node name="InventoryIcon" type="Label" parent="."]
-offset_left = 55.0
-offset_top = 10.0
-offset_right = 95.0
-offset_bottom = 50.0
-text = "🎒
-I"
-horizontal_alignment = 1
-vertical_alignment = 1
-label_settings = SubResource("LabelSettings_counter")
-
-[node name="SettingsButton" type="Button" parent="."]
-offset_left = 100.0
-offset_top = 10.0
-offset_right = 140.0
-offset_bottom = 50.0
-text = "⚙
-O"
+[node name="InventoryButton" type="Button" parent="."]
+offset_left = 586.0
+offset_top = 306.0
+offset_right = 634.0
+offset_bottom = 354.0
+text = "🎒"
+tooltip_text = "Inventário (I)"

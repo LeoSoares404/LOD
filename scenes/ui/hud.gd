@@ -9,7 +9,7 @@ const TOTAL_WAVES := 4  # precisa bater com WaveManager.TOTAL_WAVES
 @onready var mana_orb: TextureRect = %ManaOrb
 @onready var banner: Label = %WaveBanner
 @onready var counter: Label = %WaveCounter
-@onready var settings_button: Button = $SettingsButton
+@onready var inventory_button: Button = $InventoryButton
 
 var _cd_remaining: Array[float] = [0.0, 0.0, 0.0, 0.0]
 var _cd_total: Array[float] = [1.0, 1.0, 1.0, 1.0]
@@ -24,7 +24,7 @@ func _ready() -> void:
 	EventBus.skill_cooldown_started.connect(_on_cooldown_started)
 	EventBus.wave_started.connect(_on_wave_started)
 	EventBus.victory.connect(_on_victory)
-	settings_button.pressed.connect(_on_settings_pressed)
+	inventory_button.pressed.connect(_on_inventory_pressed)
 	banner.modulate.a = 0.0
 
 
@@ -76,7 +76,7 @@ func _flash_banner(text: String, color: Color, hold := 1.6) -> void:
 	tw.tween_property(banner, "modulate:a", 0.0, 0.6)
 
 
-func _on_settings_pressed() -> void:
-	var settings_menu = get_tree().root.get_node_or_null("Main/SettingsMenu")
-	if settings_menu:
-		settings_menu.toggle_menu()
+func _on_inventory_pressed() -> void:
+	var inventory_menu = get_tree().root.get_node_or_null("Main/InventoryMenu")
+	if inventory_menu:
+		inventory_menu.toggle_menu()
