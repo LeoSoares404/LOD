@@ -5,12 +5,12 @@
 [sub_resource type="ButtonGroup" id="ButtonGroup_scheme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_window"]
-bg_color = Color(0.06, 0.09, 0.11, 0.98)
+bg_color = Color(0.1, 0.07, 0.06, 0.98)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.35, 0.75, 0.72, 0.7)
+border_color = Color(0.72, 0.55, 0.26, 0.85)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
