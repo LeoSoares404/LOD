@@ -1,6 +1,7 @@
 extends CanvasLayer
 ## Inventário com moldura dark-fantasy (inventory_frame.png).
 ## Os 12 slots são posicionados sobre os sockets da arte (grade 4x3).
+## Itens são Dictionaries {"name","icon"}; entram por pickup ou arma inicial.
 
 const INVENTORY_SLOTS := 12
 const GRID_COLS := 4
@@ -41,6 +42,12 @@ func _ready() -> void:
 	_create_inventory_slots()
 	_create_gems_section()
 	dim.gui_input.connect(_on_dim_input)  # clicar no fundo escuro fecha
+	EventBus.item_picked_up.connect(add_item)
+
+	# cada classe nasce com sua arma equipada no primeiro slot
+	var starting_weapon: Dictionary = GameState.WEAPONS.get(GameState.selected_class, {})
+	if not starting_weapon.is_empty():
+		add_item(starting_weapon)
 
 
 ## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
@@ -83,18 +90,62 @@ func _create_inventory_slots() -> void:
 		slot.offset_top = cy - SLOT_H * 0.5
 		slot.offset_right = cx + SLOT_W * 0.5
 		slot.offset_bottom = cy + SLOT_H * 0.5
-		slot.mouse_entered.connect(_on_slot_hovered.bind(i, slot))
+		slot.mouse_entered.connect(_on_slot_hovered.bind(slot))
 		slot.mouse_exited.connect(_on_slot_unhovered.bind(slot))
+		slot.gui_input.connect(_on_slot_gui_input.bind(i))
+
+		# ícone do item (emoji) centralizado; vazio mostra só o socket da arte
+		var icon := Label.new()
+		icon.name = "Icon"
+		icon.add_theme_font_size_override("font_size", 16)
+		icon.anchor_right = 1.0
+		icon.anchor_bottom = 1.0
+		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(icon)
+
 		frame.add_child(slot)
 		_slots.append(slot)
 
 
-func _on_slot_hovered(_i: int, slot: Panel) -> void:
+func _on_slot_hovered(slot: Panel) -> void:
 	slot.self_modulate = Color(0.7, 0.5, 1.0, 0.25)  # brilho roxo sutil no hover
 
 
 func _on_slot_unhovered(slot: Panel) -> void:
 	slot.self_modulate = Color(1, 1, 1, 0)
+
+
+## Clique num slot ocupado remove o item (drop rápido — sem menu de contexto).
+func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		remove_item(slot_index)
+
+
+## Adiciona no primeiro slot vazio. Retorna o índice ocupado, ou -1 se cheio.
+func add_item(item: Dictionary) -> int:
+	for i in INVENTORY_SLOTS:
+		if inventory_items[i] == null:
+			inventory_items[i] = item
+			_update_slot_visual(i)
+			return i
+	return -1
+
+
+## Remove o item do slot (sem efeito se já estiver vazio).
+func remove_item(slot_index: int) -> void:
+	if inventory_items[slot_index] == null:
+		return
+	inventory_items[slot_index] = null
+	_update_slot_visual(slot_index)
+
+
+func _update_slot_visual(slot_index: int) -> void:
+	var icon: Label = _slots[slot_index].get_node("Icon")
+	var item: Variant = inventory_items[slot_index]
+	icon.text = item["icon"] if item else ""
 
 
 func _create_gems_section() -> void:
