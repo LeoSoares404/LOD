@@ -50,6 +50,20 @@ Depois de adotar esta branch na `main` (merge), o foco foi identidade visual da 
 - **Estilizar os botões** (ainda no cinza padrão do Godot).
 - **Wallpaper** dark-fantasy pixel na tela inicial (em geração por IA).
 
+## Sessão inventário / pickup / arma inicial (09/07/2026)
+
+Foco: dar função real ao inventário (até então só 12 slots visuais sem lógica) e fazer cada classe nascer com sua arma.
+
+- **`GameState.WEAPONS`** (`scripts/systems/game_state.gd`): dict com a arma inicial de cada classe — mago → Cajado Arcano 🪄, arqueiro → Arco Curto 🏹, lutador → Espada Longa 🗡.
+- **`inventory_menu.gd`** ganhou `add_item(item)` (ocupa o 1º slot vazio, retorna o índice ou -1 se cheio) e `remove_item(slot_index)` (limpa o slot). Slot mostra o ícone do item; clique num slot ocupado remove (drop rápido). No `_ready()`, o player já entra com a arma da própria classe no inventário.
+- **Pickup no mundo** (`scenes/entities/pickups/item_pickup.gd` + `.tscn`): `Area3D` na collision layer `pickups` (já reservada no `project.godot`, layer 6, nunca usada até agora). Player encosta → emite `EventBus.item_picked_up(item)` → o inventário escuta e chama `add_item` — sem referência direta entre mundo e UI, seguindo a regra "entidades emitem, UI escuta" do `ARCHITECTURE.md`.
+- **`EventBus.item_dropped`/`item_picked_up`** estavam tipados como `Resource` (nunca implementado) — mudei pra `Variant`, já que aqui os itens são `Dictionary`, igual ao padrão já usado em `skills_menu.gd`/`gems_system.gd` (o projeto nunca chegou a adotar os Resources `.tres` que o `ARCHITECTURE.md` original planejava para itens).
+
+### Pendências desta frente
+- Nada spawna um `ItemPickup` no mapa ainda — falta ligar a loot de inimigo morto ou baú.
+- Arma equipada não muda o combate — hoje o ataque (flecha/orbe/foice) já é escolhido por `GameState.selected_class`, então visualmente já "bate" com a arma certa, mas não há de fato uma leitura do item equipado.
+- Gems e Armadura seguem com o mesmo problema antigo: interface pronta, efeito não aplicado no gameplay (ver `CHECKLIST.md` seção 5).
+
 ## Em aberto / próximos passos possíveis
 
 - Paredes ainda são cor sólida (placeholder) — falta textura de pedra real.

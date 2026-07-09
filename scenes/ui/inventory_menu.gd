@@ -19,10 +19,15 @@ var gems_inventory = {
 
 func _ready() -> void:
 	menu_panel.visible = false
+	inventory_items.resize(INVENTORY_SLOTS)
 	_create_inventory_slots()
 	_create_gems_section()
-	inventory_items.resize(INVENTORY_SLOTS)
 	settings_button.pressed.connect(_on_settings_pressed)
+	EventBus.item_picked_up.connect(add_item)
+
+	var starting_weapon: Dictionary = GameState.WEAPONS.get(GameState.selected_class, {})
+	if not starting_weapon.is_empty():
+		add_item(starting_weapon)
 
 
 ## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
@@ -43,8 +48,10 @@ func _create_inventory_slots() -> void:
 		slot.color = Color(0.2, 0.2, 0.25, 0.8)
 		slot.custom_minimum_size = Vector2(50, 50)
 		slot.mouse_entered.connect(_on_slot_hovered.bindv([i]))
+		slot.gui_input.connect(_on_slot_gui_input.bindv([i]))
 
 		var label = Label.new()
+		label.name = "Label"
 		label.text = str(i + 1)
 		label.add_theme_font_size_override("font_size", 10)
 		slot.add_child(label)
@@ -54,6 +61,38 @@ func _create_inventory_slots() -> void:
 
 func _on_slot_hovered(slot_index: int) -> void:
 	pass  # tooltip futuro
+
+
+## Clique num slot ocupado remove o item (drop rápido — sem menu de contexto).
+func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		remove_item(slot_index)
+
+
+## Adiciona no primeiro slot vazio. Retorna o índice ocupado, ou -1 se cheio.
+func add_item(item: Dictionary) -> int:
+	for i in INVENTORY_SLOTS:
+		if inventory_items[i] == null:
+			inventory_items[i] = item
+			_update_slot_visual(i)
+			return i
+	return -1
+
+
+## Remove o item do slot (sem efeito se já estiver vazio).
+func remove_item(slot_index: int) -> void:
+	if inventory_items[slot_index] == null:
+		return
+	inventory_items[slot_index] = null
+	_update_slot_visual(slot_index)
+
+
+func _update_slot_visual(slot_index: int) -> void:
+	var slot: ColorRect = slots_container.get_child(slot_index)
+	var label: Label = slot.get_node("Label")
+	var item: Variant = inventory_items[slot_index]
+	label.text = item["icon"] if item else str(slot_index + 1)
 
 
 func _on_settings_pressed() -> void:

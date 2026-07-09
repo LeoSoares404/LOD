@@ -55,7 +55,10 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 
 ## 5. Progressão (Inventário / Gems / Armadura)
 > Todos existem como interface, mas **ainda não mexem no gameplay** — é aqui que tem mais o que ligar.
-- [ ] 🔴 **Inventário:** 12 slots vazios, sem itens reais nem loot
+- [x] ✅ **Inventário:** `add_item`/`remove_item` de verdade (12 slots, clique num slot ocupado remove); slots mostram o ícone do item
+- [x] ✅ **Arma inicial por classe:** mago nasce com Cajado Arcano 🪄, arqueiro com Arco Curto 🏹, lutador com Espada Longa 🗡 (`GameState.WEAPONS`), já cai no inventário ao entrar no jogo
+- [x] ✅ **Pickup no mundo:** `scenes/entities/pickups/item_pickup.tscn` (Area3D na layer `pickups`) — player encosta, item entra no inventário via `EventBus.item_picked_up`
+- [ ] 🟡 Nada ainda **spawna** um `ItemPickup` no mapa — falta ligar isso a loot de inimigo/baú
 - [ ] 🔴 **Gems:** dá pra arrastar as pedras pros slots Q/W/E/R e guarda a escolha, mas os efeitos (**+25% dano**, **-25% mana**, **+2 projéteis**, **+25% tamanho**) **não são aplicados** no player
 - [ ] 🔴 **Armadura:** seleciona (0–45% de redução de dano) mas a redução **não é aplicada** ao dano recebido
 - [ ] 💡 Loot: inimigo dropar item/gem ao morrer

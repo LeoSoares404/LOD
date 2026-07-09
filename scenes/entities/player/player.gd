@@ -41,17 +41,58 @@ const MANA_REGEN := 4.0
 # auto-attack (botão esquerdo): sem custo de mana; classe decide forma e ritmo.
 const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
 const GLOW_TEX := preload("res://assets/sprites/props/glow_gradient.tres")
-const ATTACK_COOLDOWN := {"mago": 0.5, "arqueiro": 0.26, "lutador": 0.65}
-const DEFAULT_ATTACK_COOLDOWN := 0.5
+
+const MAGE_ATTACK_CD := 0.5  # ritmo de referência; as outras classes derivam daqui
+const ATTACK_COOLDOWN := {
+	"mago": MAGE_ATTACK_CD,
+	"arqueiro": MAGE_ATTACK_CD * 0.5,  # 2x mais rápido
+	"lutador": MAGE_ATTACK_CD * 2.0,   # 2x mais lento — golpe pesado em arco
+}
+
+# golpe do lutador: foice varrendo um cone à frente, na direção do mouse.
+# A lâmina abre SCYTHE_SPAN_DEG e gira de ponta a ponta; o que ela varre é
+# exatamente MELEE_ARC_DEG (span + os dois lados da varredura).
 const MELEE_RADIUS := 2.5
 const MELEE_DAMAGE := 6
+const MELEE_ARC_DEG := 110.0
+const SCYTHE_SPAN_DEG := 46.0   # abertura da lâmina
+const SCYTHE_INNER := 0.30      # raio interno no cabo (× MELEE_RADIUS)
+const SCYTHE_TIP := 0.92        # raio interno na ponta — a lâmina afina até virar gume
 const SLASH_FX_TIME := 0.22
+const SLASH_SEGMENTS := 16
 
-# veneno (poças de lodo): slow enquanto dentro + dano por tempo que persiste
+# cada onda vencida melhora o auto-attack da classe (nível 0 na 1ª onda)
+const WAVE_MELEE_DAMAGE_BONUS := 2     # +2 de dano por onda
+const WAVE_MELEE_ARC_BONUS := 0.20     # +20% de cone por onda
+const WAVE_ORB_EXPLOSION_BONUS := 0.25 # estouro do mago +25% por onda
+const ARROW_SPACING := 0.45            # m entre as flechas do arqueiro
+
+# popup de dano do player (mesmo da hitbox dos inimigos, mas em vermelho)
+const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
+const DAMAGE_NUMBER_TINT := Color(1.0, 0.35, 0.32)
+
+# veneno (poças de lodo): slow enquanto dentro + dano por tempo que persiste.
+# O debuff é renovado a cada frame dentro da poça e só então conta POISON_LINGER
+# segundos até acabar — sair da poça não cura, só inicia a contagem.
 const POISON_SLOW := 0.5      # multiplicador de velocidade dentro da poça
 const POISON_TICK := 1.0      # s entre ticks de dano
 const POISON_LINGER := 3.0    # s que o veneno dura após sair da poça
-const POISON_DAMAGE := 1
+const POISON_TICK_PCT := 0.02  # 2% da vida máxima por tick
+
+# caveirinha de envenenado que flutua sobre a cabeça. '#' = osso, '.' = órbita.
+const POISON_ICON := [
+	"  ####  ",
+	" ###### ",
+	"########",
+	"#.####.#",
+	"#.####.#",
+	"########",
+	" ###### ",
+	" #.##.# ",
+]
+const POISON_ICON_BONE := Color8(198, 240, 140)
+const POISON_ICON_DARK := Color8(20, 32, 16)
+const POISON_ICON_HEIGHT := 2.15  # m — acima da barra de vida (1.8)
 
 const ENEMY_LAYER_MASK := 4  # layer 3 "enemies"
 
@@ -62,6 +103,9 @@ var _attack_cd := 0.0
 var _poison_zones := 0        # quantas poças estão tocando o player
 var _poison_left := 0.0       # tempo restante do debuff de veneno
 var _poison_tick := 0.0
+var _poison_icon: Sprite3D
+
+var _last_health := 0  # p/ virar dano em popup, venha de onde vier
 
 # animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
 const ANIM_FPS := 8.0
@@ -84,16 +128,33 @@ var _just_pressed := {}  # physical_keycode -> true (limpo a cada tick de físic
 
 func _ready() -> void:
 	health.died.connect(_on_died)
-	health.health_changed.connect(
-		func(c: int, m: int) -> void: EventBus.player_health_changed.emit(c, m)
-	)
+	health.health_changed.connect(_on_health_changed)
 	hurtbox.hit_received.connect(_on_hit_received)
+	_last_health = health.health
+	_build_poison_icon()
 	_emit_initial_status.call_deferred()  # deferido: garante que a HUD já conectou
 
 
 func _emit_initial_status() -> void:
 	EventBus.player_health_changed.emit(health.health, health.max_health)
 	EventBus.player_mana_changed.emit(int(_mana), MAX_MANA)
+
+
+## Todo dano vira popup aqui — golpe, veneno, o que for. Ficar preso ao
+## hit_received deixaria o veneno (que chama take_damage direto) sem número.
+func _on_health_changed(current: int, max_health: int) -> void:
+	EventBus.player_health_changed.emit(current, max_health)
+	if current < _last_health:
+		_spawn_damage_number(_last_health - current)
+	_last_health = current
+
+
+func _spawn_damage_number(amount: int) -> void:
+	var dmg_num: Label3D = DAMAGE_NUMBER_SCENE.instantiate()
+	dmg_num.text = "-%d" % amount
+	dmg_num.modulate = DAMAGE_NUMBER_TINT
+	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 1.9, 0)
+	get_tree().current_scene.add_child(dmg_num)
 
 
 func _on_hit_received(_hitbox: HitboxComponent) -> void:
@@ -224,63 +285,204 @@ func set_in_poison(inside: bool) -> void:
 	_poison_zones = maxi(_poison_zones + (1 if inside else -1), 0)
 
 
-## Debuff de veneno: renovado enquanto estiver numa poça, persiste
-## POISON_LINGER s depois de sair, causando POISON_DAMAGE por tick.
+## Dano de um tick de veneno: 2% da vida máxima. Com 20 de vida isso daria 0,4 —
+## como o dano é int, o piso de 1 impede que o debuff vire um nada.
+func _poison_damage() -> int:
+	return maxi(1, roundi(health.max_health * POISON_TICK_PCT))
+
+
+## Caveirinha pixelada sobre a cabeça: só aparece com o debuff ativo.
+func _build_poison_icon() -> void:
+	var w: int = POISON_ICON[0].length()
+	var h: int = POISON_ICON.size()
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			match POISON_ICON[y][x]:
+				"#": img.set_pixel(x, y, POISON_ICON_BONE)
+				".": img.set_pixel(x, y, POISON_ICON_DARK)
+				_: img.set_pixel(x, y, Color(0, 0, 0, 0))
+
+	_poison_icon = Sprite3D.new()
+	_poison_icon.texture = ImageTexture.create_from_image(img)
+	_poison_icon.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	_poison_icon.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	_poison_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_poison_icon.no_depth_test = true
+	_poison_icon.pixel_size = 1.0 / Iso.PPM  # 8 px = 0,5 m
+	_poison_icon.position.y = POISON_ICON_HEIGHT
+	_poison_icon.visible = false
+	add_child(_poison_icon)
+
+	# pulsa enquanto existir — só é visto quando o debuff liga o visible
+	var tw := create_tween().set_loops()
+	tw.tween_property(_poison_icon, "scale", Vector3.ONE * 1.25, 0.45).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_poison_icon, "scale", Vector3.ONE, 0.45).set_trans(Tween.TRANS_SINE)
+
+
+## Debuff de veneno: dentro da poça ele é renovado a cada frame (não expira);
+## ao sair, começa a contar POISON_LINGER s até acabar, tickando até lá.
 func _update_poison(delta: float) -> void:
 	if _poison_zones > 0:
-		_poison_left = POISON_LINGER
-	if _poison_left <= 0.0:
-		return
-	_poison_left -= delta
-	_poison_tick -= delta
-	if _poison_tick <= 0.0:
-		_poison_tick = POISON_TICK
-		health.take_damage(POISON_DAMAGE)
-		_sprite.modulate = Color(0.6, 2.2, 0.6)  # flash verde de veneno
-		create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+		if _poison_left <= 0.0:
+			_poison_tick = 0.0  # entrou limpo: o primeiro tick sai na hora
+		_poison_left = POISON_LINGER  # dentro da poça o debuff não expira, só renova
+	elif _poison_left > 0.0:
+		_poison_left = maxf(_poison_left - delta, 0.0)  # fora: conta os 3 s até acabar
+
+	if _poison_left > 0.0:
+		_poison_tick -= delta
+		if _poison_tick <= 0.0:
+			_poison_tick = POISON_TICK
+			health.take_damage(_poison_damage())
+			_sprite.modulate = Color(0.6, 2.2, 0.6)  # flash verde de veneno
+			create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+
+	_poison_icon.visible = _poison_left > 0.0
 
 
 ## Auto-attack (botão esquerdo): o player PARA e ataca. Lutador dá dano em
 ## área ao redor de si; as outras classes atiram um projétil na mira do mouse.
+## Ondas vencidas. Onda 1 = nível 0 (auto-attack base).
+func _upgrade_level() -> int:
+	return maxi(GameState.current_wave - 1, 0)
+
+
+func _melee_damage() -> int:
+	return MELEE_DAMAGE + WAVE_MELEE_DAMAGE_BONUS * _upgrade_level()
+
+
+func _melee_arc_deg() -> float:
+	var arc := MELEE_ARC_DEG * (1.0 + WAVE_MELEE_ARC_BONUS * _upgrade_level())
+	return minf(arc, 360.0)  # além disso a foice daria a volta em si mesma
+
+
+func _arrow_count() -> int:
+	return 1 + _upgrade_level()
+
+
+func _explosion_scale() -> float:
+	return 1.0 + WAVE_ORB_EXPLOSION_BONUS * _upgrade_level()
+
+
 func _auto_attack() -> void:
-	_attack_cd = ATTACK_COOLDOWN.get(GameState.selected_class, DEFAULT_ATTACK_COOLDOWN)
+	_attack_cd = ATTACK_COOLDOWN.get(GameState.selected_class, MAGE_ATTACK_CD)
 	_moving = false
 	velocity = Vector3.ZERO
-	if GameState.selected_class == "lutador":
-		_damage_area(global_position, MELEE_RADIUS, MELEE_DAMAGE, 0.0)
-		_slash_fx(MELEE_RADIUS)
-		_sprite.modulate = Color(2.0, 1.6, 0.8)  # flash do golpe
-		create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.15)
-	else:
-		var bolt: MagicBolt = BOLT_SCENE.instantiate()
-		bolt.position = global_position + CAST_OFFSET
-		var dir := Iso.flat_direction(global_position, Iso.mouse_ground_position(self))
-		bolt.direction = dir if dir != Vector3.ZERO else Vector3.RIGHT
-		bolt.is_arrow = GameState.selected_class == "arqueiro"
-		get_tree().current_scene.add_child(bolt)
+
+	var dir := Iso.flat_direction(global_position, Iso.mouse_ground_position(self))
+	if dir == Vector3.ZERO:
+		dir = Vector3.FORWARD  # mouse exatamente em cima do player
+
+	match GameState.selected_class:
+		"lutador": _melee_attack(dir)
+		"arqueiro": _arrow_volley(dir)
+		_: _orb_attack(dir)
 
 
-## Onda de choque do golpe corpo a corpo: disco no chão que abre até EXATAMENTE
-## o raio atingido pelo _damage_area e some — o jogador vê a área que bateu.
-func _slash_fx(radius: float) -> void:
-	var fx := Sprite3D.new()
-	fx.texture = GLOW_TEX
-	fx.pixel_size = 1.0 / Iso.PPM
-	fx.rotation_degrees.x = -90.0  # deitado no chão
-	fx.modulate = Color(2.4, 1.7, 0.6, 0.85)
+func _melee_attack(dir: Vector3) -> void:
+	var arc := _melee_arc_deg()
+	_damage_area(global_position, MELEE_RADIUS, _melee_damage(), 0.0, dir, arc)
+	_slash_fx(dir, MELEE_RADIUS, arc)
+	_sprite.modulate = Color(2.0, 1.6, 0.8)  # flash do golpe
+	create_tween().tween_property(_sprite, "modulate", Color.WHITE, 0.15)
+
+
+## Uma flecha por nível, lado a lado e paralelas (não em leque).
+func _arrow_volley(dir: Vector3) -> void:
+	var side := dir.cross(Vector3.UP).normalized()
+	var count := _arrow_count()
+	for i in count:
+		var offset := (i - (count - 1) / 2.0) * ARROW_SPACING
+		var arrow: MagicBolt = BOLT_SCENE.instantiate()
+		arrow.is_arrow = true
+		arrow.direction = dir
+		arrow.position = global_position + CAST_OFFSET + side * offset
+		get_tree().current_scene.add_child(arrow)
+
+
+func _orb_attack(dir: Vector3) -> void:
+	var orb: MagicBolt = BOLT_SCENE.instantiate()
+	orb.direction = dir
+	orb.explosion_scale = _explosion_scale()
+	orb.position = global_position + CAST_OFFSET
+	get_tree().current_scene.add_child(orb)
+
+
+## Meio-ângulo da varredura: o quanto a lâmina gira pra cada lado da mira.
+## span + 2×varredura = arc_deg, então a foice cobre exatamente o cone do dano.
+func _sweep_half_deg(arc_deg: float) -> float:
+	return (arc_deg - SCYTHE_SPAN_DEG) / 2.0
+
+
+## Foice do lutador: lâmina em crescente que varre o cone do mouse de ponta a
+## ponta. O varrido bate com o raio e o arco do _damage_area — o jogador vê
+## exatamente o que foi atingido.
+func _slash_fx(dir: Vector3, radius: float, arc_deg: float) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED  # visível de cima sem cuidar do winding
+	mat.albedo_color = Color(3.0, 0.5, 0.3, 0.95)  # gume em brasa
+
+	var fx := MeshInstance3D.new()
+	fx.mesh = _scythe_mesh(radius)
+	fx.material_override = mat
 	fx.position = global_position + Vector3(0, 0.06, 0)
 
-	# escala 1 = textura de 256 px * pixel_size = 16 m de largura
-	var full := radius * 2.0 / (GLOW_TEX.get_width() * fx.pixel_size)
-	fx.scale = Vector3(full * 0.35, full * 0.35, 1.0)
+	var aim := atan2(-dir.x, -dir.z)  # a lâmina nasce centrada no -Z
+	var sweep := deg_to_rad(_sweep_half_deg(arc_deg))
+	fx.rotation.y = aim - sweep
 	get_tree().current_scene.add_child(fx)
 
 	var tw := fx.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(fx, "scale", Vector3(full, full, 1.0), SLASH_FX_TIME * 0.8) \
+	tw.tween_property(fx, "rotation:y", aim + sweep, SLASH_FX_TIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(fx, "modulate:a", 0.0, SLASH_FX_TIME)
+	# some só no fim da varredura, senão o corte "apaga" antes de chegar na ponta
+	tw.tween_property(mat, "albedo_color:a", 0.0, SLASH_FX_TIME * 0.45) \
+		.set_delay(SLASH_FX_TIME * 0.55)
 	tw.chain().tween_callback(fx.queue_free)
+
+
+## Lâmina em crescente no plano XZ, centrada no -Z, abrindo SCYTHE_SPAN_DEG.
+## O raio interno cresce de SCYTHE_INNER até SCYTHE_TIP: grossa no cabo,
+## afiada na ponta — silhueta de foice, não de fatia de pizza.
+func _scythe_mesh(radius: float) -> ArrayMesh:
+	var half := deg_to_rad(SCYTHE_SPAN_DEG) / 2.0
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in SLASH_SEGMENTS:
+		var t0 := float(i) / SLASH_SEGMENTS
+		var t1 := float(i + 1) / SLASH_SEGMENTS
+		var a0 := lerpf(-half, half, t0)
+		var a1 := lerpf(-half, half, t1)
+		var in0 := _arc_point(a0, radius * lerpf(SCYTHE_INNER, SCYTHE_TIP, t0))
+		var in1 := _arc_point(a1, radius * lerpf(SCYTHE_INNER, SCYTHE_TIP, t1))
+		var out0 := _arc_point(a0, radius)
+		var out1 := _arc_point(a1, radius)
+		st.add_vertex(in0)
+		st.add_vertex(out1)
+		st.add_vertex(out0)
+		st.add_vertex(in0)
+		st.add_vertex(in1)
+		st.add_vertex(out1)
+	return st.commit()
+
+
+func _arc_point(angle: float, radius: float) -> Vector3:
+	return Vector3(sin(angle) * radius, 0.0, -cos(angle) * radius)
+
+
+## `point` está dentro do cone que sai de `center` na direção `facing`?
+## arc_deg = 0 significa círculo inteiro (sem cone).
+func _in_arc(center: Vector3, point: Vector3, facing: Vector3, arc_deg: float) -> bool:
+	if arc_deg <= 0.0 or facing == Vector3.ZERO:
+		return true
+	var to_point := Iso.flat_direction(center, point)
+	if to_point == Vector3.ZERO:
+		return true  # em cima do centro: sempre acerta
+	return to_point.angle_to(facing) <= deg_to_rad(arc_deg) / 2.0
 
 
 func _regen_mana(delta: float) -> void:
@@ -342,8 +544,16 @@ func _cast_super() -> void:
 
 
 ## Dano instantâneo em área: esfera de PhysicsShapeQuery contra os corpos dos
-## inimigos, aplicado via Hurtbox (emit puro pulava take_damage).
-func _damage_area(center: Vector3, radius: float, damage: int, stun: float) -> void:
+## inimigos, aplicado via Hurtbox (emit puro pulava take_damage). Com `facing` +
+## `arc_deg` a esfera vira um cone à frente; sem eles, acerta os 360°.
+func _damage_area(
+	center: Vector3,
+	radius: float,
+	damage: int,
+	stun: float,
+	facing := Vector3.ZERO,
+	arc_deg := 0.0,
+) -> void:
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsShapeQueryParameters3D.new()
 	var sphere := SphereShape3D.new()
@@ -354,9 +564,12 @@ func _damage_area(center: Vector3, radius: float, damage: int, stun: float) -> v
 
 	for result in space_state.intersect_shape(query):
 		var collider: Object = result.collider
-		if collider is Node3D and collider.is_in_group("enemies") and collider.has_node("Hurtbox"):
-			var hitbox := HitboxComponent.new()
-			hitbox.damage = damage
-			hitbox.stun_duration = stun
-			collider.get_node("Hurtbox").take_hit(hitbox)
-			hitbox.queue_free()
+		if not (collider is Node3D and collider.is_in_group("enemies") and collider.has_node("Hurtbox")):
+			continue
+		if not _in_arc(center, collider.global_position, facing, arc_deg):
+			continue
+		var hitbox := HitboxComponent.new()
+		hitbox.damage = damage
+		hitbox.stun_duration = stun
+		collider.get_node("Hurtbox").take_hit(hitbox)
+		hitbox.queue_free()

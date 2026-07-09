@@ -27,6 +27,13 @@ const CLASSES := {
 	},
 }
 
+# arma inicial de cada classe — nasce equipada no inventário
+const WEAPONS := {
+	"mago": {"name": "Cajado Arcano", "icon": "🪄"},
+	"arqueiro": {"name": "Arco Curto", "icon": "🏹"},
+	"lutador": {"name": "Espada Longa", "icon": "🗡"},
+}
+
 # máximos p/ normalizar as barras de atributo (0..1)
 const ATTR_MAX := {"vida": 45.0, "mana": 40.0, "dano": 11.0, "velocidade": 8.0}
 const ATTR_ORDER := ["vida", "mana", "dano", "velocidade"]

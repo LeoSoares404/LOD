@@ -29,6 +29,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
+	GameState.current_wave = 0  # autoload sobrevive ao reload da cena; zera aqui
 	_player = get_tree().get_first_node_in_group("player")
 	EventBus.enemy_died.connect(_on_enemy_died)
 	_schedule_next(FIRST_DELAY)
@@ -37,6 +38,7 @@ func _ready() -> void:
 func _schedule_next(delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
 	_wave += 1
+	GameState.current_wave = _wave  # o auto-attack do player melhora por onda
 	if _wave <= GHOUL_WAVES.size():
 		_spawn_ghouls(GHOUL_WAVES[_wave - 1])
 		_spawn_sprinters(SPRINTER_WAVES[_wave - 1])
