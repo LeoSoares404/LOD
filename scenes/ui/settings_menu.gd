@@ -2,12 +2,12 @@ extends CanvasLayer
 ## Menu de PAUSA (abre com ESC): pausa o jogo e concentra as configurações —
 ## volume master, esquema de controle (mouse/WASD), continuar e sair.
 
-@onready var menu_panel: Panel = $MenuPanel
-@onready var continue_button: Button = $MenuPanel/VBoxContainer/ContinueButton
-@onready var volume_slider: HSlider = $MenuPanel/VBoxContainer/VolumeSlider
-@onready var mouse_button: Button = $MenuPanel/VBoxContainer/SchemeRow/MouseButton
-@onready var wasd_button: Button = $MenuPanel/VBoxContainer/SchemeRow/WasdButton
-@onready var quit_button: Button = $MenuPanel/VBoxContainer/QuitButton
+@onready var menu_panel: Control = $MenuPanel
+@onready var continue_button: Button = $MenuPanel/Window/VBoxContainer/ContinueButton
+@onready var volume_slider: HSlider = $MenuPanel/Window/VBoxContainer/VolumeSlider
+@onready var mouse_button: Button = $MenuPanel/Window/VBoxContainer/SchemeRow/MouseButton
+@onready var wasd_button: Button = $MenuPanel/Window/VBoxContainer/SchemeRow/WasdButton
+@onready var quit_button: Button = $MenuPanel/Window/VBoxContainer/QuitButton
 
 var is_open := false
 var _master_bus := AudioServer.get_bus_index("Master")

@@ -1,61 +1,89 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/settings_menu.gd" id="1_settings"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_scheme"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_window"]
+bg_color = Color(0.06, 0.09, 0.11, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.75, 0.72, 0.7)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [node name="SettingsMenu" type="CanvasLayer"]
 script = ExtResource("1_settings")
 
-[node name="MenuPanel" type="Panel" parent="."]
-offset_left = 300.0
-offset_top = 150.0
-offset_right = 660.0
-offset_bottom = 400.0
-modulate = Color(0.1, 0.1, 0.15, 0.95)
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MenuPanel"]
-layout_mode = 1
-anchors_preset = 15
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
+[node name="MenuPanel" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 14
 
-[node name="Title" type="Label" parent="MenuPanel/VBoxContainer"]
+[node name="Dim" type="ColorRect" parent="MenuPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.6)
+
+[node name="Window" type="Panel" parent="MenuPanel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -152.0
+offset_top = -162.0
+offset_right = 152.0
+offset_bottom = 162.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_window")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuPanel/Window"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = -18.0
+offset_bottom = -16.0
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Title" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "⏸  Pausa"
 horizontal_alignment = 1
-custom_minimum_size = Vector2(0, 30)
 
-[node name="ContinueButton" type="Button" parent="MenuPanel/VBoxContainer"]
+[node name="ContinueButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 38)
 text = "▶  Continuar"
 
-[node name="VolumeLabel" type="Label" parent="MenuPanel/VBoxContainer"]
+[node name="VolumeLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
 text = "Volume"
 
-[node name="VolumeSlider" type="HSlider" parent="MenuPanel/VBoxContainer"]
+[node name="VolumeSlider" type="HSlider" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
 min_value = 0.0
 max_value = 1.0
 step = 0.05
 value = 1.0
 
-[node name="ControlsLabel" type="Label" parent="MenuPanel/VBoxContainer"]
+[node name="ControlsLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
 text = "Controles"
 
-[node name="SchemeRow" type="HBoxContainer" parent="MenuPanel/VBoxContainer"]
+[node name="SchemeRow" type="HBoxContainer" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="MouseButton" type="Button" parent="MenuPanel/VBoxContainer/SchemeRow"]
+[node name="MouseButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
@@ -63,19 +91,21 @@ button_pressed = true
 button_group = SubResource("ButtonGroup_scheme")
 text = "Mouse"
 
-[node name="WasdButton" type="Button" parent="MenuPanel/VBoxContainer/SchemeRow"]
+[node name="WasdButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 toggle_mode = true
 button_group = SubResource("ButtonGroup_scheme")
 text = "WASD"
 
-[node name="SchemeHint" type="Label" parent="MenuPanel/VBoxContainer"]
+[node name="SchemeHint" type="Label" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 11
 text = "WASD: skills viram Q, E, C, R"
+horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.6)
 
-[node name="QuitButton" type="Button" parent="MenuPanel/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 38)
 text = "Sair do jogo"
