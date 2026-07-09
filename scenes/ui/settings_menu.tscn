@@ -34,75 +34,93 @@ grow_vertical = 2
 texture = ExtResource("2_frame")
 expand_mode = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MenuPanel/Window"]
+[node name="PausePage" type="VBoxContainer" parent="MenuPanel/Window"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 74.0
-offset_right = -40.0
-offset_bottom = -74.0
-theme_override_constants/separation = 5
+offset_left = 36.0
+offset_top = 78.0
+offset_right = -36.0
+offset_bottom = -80.0
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Title" type="Label" parent="MenuPanel/Window/VBoxContainer"]
+[node name="Title" type="Label" parent="MenuPanel/Window/PausePage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Pausa"
 horizontal_alignment = 1
 
-[node name="ContinueButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
+[node name="ContinueButton" type="Button" parent="MenuPanel/Window/PausePage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
-custom_minimum_size = Vector2(0, 26)
-text = "▶  Continuar"
+custom_minimum_size = Vector2(0, 28)
+text = "▶ Continuar"
 
-[node name="VolumeLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
+[node name="ConfigButton" type="Button" parent="MenuPanel/Window/PausePage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
-text = "Volume"
+custom_minimum_size = Vector2(0, 28)
+text = "Configuração"
 
-[node name="VolumeSlider" type="HSlider" parent="MenuPanel/Window/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="MenuPanel/Window/PausePage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+custom_minimum_size = Vector2(0, 28)
+text = "Sair do jogo"
+
+[node name="ConfigPage" type="VBoxContainer" parent="MenuPanel/Window"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 34.0
+offset_top = 70.0
+offset_right = -34.0
+offset_bottom = -72.0
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Title" type="Label" parent="MenuPanel/Window/ConfigPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "Configuração"
+horizontal_alignment = 1
+
+[node name="AudioLabel" type="Label" parent="MenuPanel/Window/ConfigPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Áudio"
+
+[node name="VolumeSlider" type="HSlider" parent="MenuPanel/Window/ConfigPage"]
 layout_mode = 2
 min_value = 0.0
 max_value = 1.0
 step = 0.05
 value = 1.0
 
-[node name="ControlsLabel" type="Label" parent="MenuPanel/Window/VBoxContainer"]
+[node name="StyleLabel" type="Label" parent="MenuPanel/Window/ConfigPage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
-text = "Controles"
+text = "Estilo de jogo"
 
-[node name="SchemeRow" type="HBoxContainer" parent="MenuPanel/Window/VBoxContainer"]
+[node name="ClassicoButton" type="Button" parent="MenuPanel/Window/ConfigPage"]
 layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="MouseButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
-layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 8
+custom_minimum_size = Vector2(0, 24)
 toggle_mode = true
 button_pressed = true
 button_group = SubResource("ButtonGroup_scheme")
-text = "Mouse"
+text = "Clássico (mouse)"
 
-[node name="WasdButton" type="Button" parent="MenuPanel/Window/VBoxContainer/SchemeRow"]
+[node name="ModernoButton" type="Button" parent="MenuPanel/Window/ConfigPage"]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 8
+custom_minimum_size = Vector2(0, 24)
 toggle_mode = true
 button_group = SubResource("ButtonGroup_scheme")
-text = "WASD"
+text = "Moderno (WASD)"
 
-[node name="SchemeHint" type="Label" parent="MenuPanel/Window/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 6
-text = "WASD: Q, E, C, R"
-horizontal_alignment = 1
-modulate = Color(1, 1, 1, 0.55)
-
-[node name="QuitButton" type="Button" parent="MenuPanel/Window/VBoxContainer"]
+[node name="VoltarButton" type="Button" parent="MenuPanel/Window/ConfigPage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
 custom_minimum_size = Vector2(0, 26)
-text = "Sair do jogo"
+text = "‹ Voltar"
