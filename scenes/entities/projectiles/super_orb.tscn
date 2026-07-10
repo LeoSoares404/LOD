@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/entities/projectiles/super_orb.gd" id="1_super"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="2_glow"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 0.35
+
+[node name="SuperOrb" type="Area3D"]
+collision_layer = 0
+collision_mask = 16
+script = ExtResource("1_super")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("SphereShape3D_1")
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+modulate = Color(1, 0.7, 2, 1)
+position = Vector3(0, 0.5, 0)
+pixel_size = 0.0625
+texture = ExtResource("2_glow")
+billboard = 1
+
+[node name="Light3D" type="OmniLight3D" parent="."]
+position = Vector3(0, 0.5, 0)
+light_color = Color(0.4, 0.2, 1, 1)
+light_energy = 1.2
+omni_range = 4.0

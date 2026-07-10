@@ -771,9 +771,13 @@ func _cast_pillar() -> void:
 
 
 func _cast_super() -> void:
-	var target_pos := Iso.mouse_ground_position(self)
-	global_position = target_pos
-	_damage_area(target_pos, SUPER_EXPLOSION_RADIUS, 50, SUPER_STUN_DURATION)
+	const SUPER_ORB_SCENE := preload("res://scenes/entities/projectiles/super_orb.tscn")
+	var orb: SuperOrb = SUPER_ORB_SCENE.instantiate()
+	orb.position = global_position + CAST_OFFSET
+	orb.target = Iso.mouse_ground_position(self)
+	orb.damage = 50
+	orb.stun_duration = SUPER_STUN_DURATION
+	get_tree().current_scene.add_child(orb)
 
 	# efeito visual
 	_sprite.modulate = Color(1.5, 1.0, 2.0)
