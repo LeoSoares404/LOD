@@ -43,11 +43,48 @@ const BOLT_SCENE := preload("res://scenes/entities/projectiles/magic_bolt.tscn")
 const GLOW_TEX := preload("res://assets/sprites/props/glow_gradient.tres")
 
 const MAGE_ATTACK_CD := 0.5  # ritmo de referência; as outras classes derivam daqui
+const ARCHER_ATTACK_CD := MAGE_ATTACK_CD * 0.5  # 2x mais rápido
 const ATTACK_COOLDOWN := {
 	"mago": MAGE_ATTACK_CD,
-	"arqueiro": MAGE_ATTACK_CD * 0.5,  # 2x mais rápido
+	"arqueiro": ARCHER_ATTACK_CD,
 	"lutador": MAGE_ATTACK_CD * 2.0,   # 2x mais lento — golpe pesado em arco
 }
+
+# armas à distância dropadas por inimigos (ver GameState.equipped_weapon),
+# derivadas do dano/ritmo do arco.
+const ARROW_DAMAGE := 6                          # dano do arco (= "dano" do arqueiro no GameState)
+const PISTOL_DAMAGE := 5                         # 75% do dano do arco (6 × 0,75 = 4,5 → 5)
+const PISTOL_BURST_SHOTS := 2
+const PISTOL_BURST_GAP := 0.12                   # s entre os 2 tiros da rajada
+const PISTOL_COOLDOWN := 0.9                     # recarga após a rajada, independente do arco
+const BLOWGUN_DAMAGE := 3                        # 50% do dano do arco
+const BLOWGUN_COOLDOWN := ARCHER_ATTACK_CD / 0.75  # atira a 75% da velocidade do arco
+
+# orbe carregável (mago): segurar ataque carrega, soltar dispara — dano e
+# estouro crescem linearmente até CHARGE_ORB_MAX_TIME.
+const CHARGE_ORB_MAX_TIME := 1.5
+const CHARGE_ORB_DAMAGE_BONUS := 1.5      # carga máxima = 2,5x o dano do cajado
+const CHARGE_ORB_EXPLOSION_BONUS := 1.0   # carga máxima = 2x o estouro do cajado
+const ORB_COOLDOWN := MAGE_ATTACK_CD      # recarga própria após o disparo
+
+# luva (mago): 3 orbes juntos, cada um bem mais fraco que o cajado.
+const GLOVE_SHOTS := 3
+const GLOVE_DAMAGE := 2               # 30% do estouro do cajado (6 × 0,3 = 1,8 → 2)
+const GLOVE_EXPLOSION_MULT := 0.3     # 30% do tamanho de estouro do cajado
+const GLOVE_SPACING := 0.55           # m entre os 3 orbes lado a lado
+const GLOVE_COOLDOWN := MAGE_ATTACK_CD
+
+# ícone da arma atual (mesmo emoji do GameState), flutuando na frente do
+# personagem e seguindo a direção da mira.
+const WEAPON_ICON_OFFSET := 0.6  # m à frente do peito
+
+# barra fantasma logo acima da barra de vida (1.8 m): enche conforme o
+# auto-attack recarrega — cheia = pronto pra atacar.
+const ATTACK_BAR_HEIGHT := 1.94   # m
+const ATTACK_BAR_WIDTH := 1.0     # mesma largura da HealthBar
+const ATTACK_BAR_THICKNESS := 0.06
+const ATTACK_BAR_TRACK := Color(0.05, 0.08, 0.09, 0.45)
+const ATTACK_BAR_FILL := Color(1.0, 1.0, 1.0, 0.6)  # branco fantasma
 
 # golpe do lutador: foice varrendo um cone à frente, na direção do mouse.
 # A lâmina abre SCYTHE_SPAN_DEG e gira de ponta a ponta; o que ela varre é
@@ -99,11 +136,21 @@ const ENEMY_LAYER_MASK := 4  # layer 3 "enemies"
 var _cooldowns := [0.0, 0.0, 0.0, 0.0]
 var _mana := float(MAX_MANA)
 var _attack_cd := 0.0
+var _attack_cd_total := 1.0   # recarga cheia do último ataque (base da barra)
+var _attack_bar_fill: MeshInstance3D
+
+var _pistol_burst_left := 0    # tiros restantes na rajada atual (0 = nenhuma em andamento)
+var _pistol_burst_dir := Vector3.ZERO
+var _pistol_burst_timer := 0.0
+
+var _orb_charge_time := 0.0    # 0 = sem carga em andamento
 
 var _poison_zones := 0        # quantas poças estão tocando o player
 var _poison_left := 0.0       # tempo restante do debuff de veneno
 var _poison_tick := 0.0
 var _poison_icon: Sprite3D
+
+var _weapon_icon: Label3D
 
 var _last_health := 0  # p/ virar dano em popup, venha de onde vier
 
@@ -130,8 +177,11 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	health.health_changed.connect(_on_health_changed)
 	hurtbox.hit_received.connect(_on_hit_received)
+	EventBus.weapon_equipped.connect(_on_weapon_equipped)
 	_last_health = health.health
 	_build_poison_icon()
+	_build_weapon_icon()
+	_build_attack_bar()
 	_emit_initial_status.call_deferred()  # deferido: garante que a HUD já conectou
 
 
@@ -155,6 +205,16 @@ func _spawn_damage_number(amount: int) -> void:
 	dmg_num.modulate = DAMAGE_NUMBER_TINT
 	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 1.9, 0)
 	get_tree().current_scene.add_child(dmg_num)
+
+
+## Arma só troca quando o jogador arrasta uma pro slot de arma do inventário
+## (EventBus.weapon_equipped). Pegar do chão apenas guarda no inventário.
+## weapon_id "" = slot vazio ou arma da classe → auto-attack padrão.
+func _on_weapon_equipped(weapon_id: String) -> void:
+	GameState.equipped_weapon = weapon_id
+	_pistol_burst_left = 0  # trocar de arma cancela rajada de pistola pendente
+	_orb_charge_time = 0.0  # ...e também cancela carga de orbe pendente
+	_attack_cd = 0.0        # ...e libera o ataque com a arma nova na hora
 
 
 func _on_hit_received(_hitbox: HitboxComponent) -> void:
@@ -186,14 +246,19 @@ func _physics_process(delta: float) -> void:
 			_cooldowns[i] -= delta
 	if _attack_cd > 0.0:
 		_attack_cd -= delta
+	_update_pistol_burst(delta)
 	_regen_mana(delta)
 	_update_poison(delta)
+	_update_weapon_icon()
+	_update_attack_bar()
 
 	for i in 4:
 		if _skill_key_pressed(i) and _can_cast(i):
 			_cast(i)
 
-	if Input.is_action_pressed("attack") and _attack_cd <= 0.0:
+	if GameState.equipped_weapon == "orbe":
+		_update_charge_orb(delta)
+	elif Input.is_action_pressed("attack") and _attack_cd <= 0.0:
 		_auto_attack()
 
 	if GameState.control_scheme == "wasd":
@@ -320,6 +385,82 @@ func _build_poison_icon() -> void:
 	tw.tween_property(_poison_icon, "scale", Vector3.ONE, 0.45).set_trans(Tween.TRANS_SINE)
 
 
+## Emoji da arma em uso agora — a dropada (pistola/zarabatana), ou a da classe
+## quando nenhuma foi equipada ainda.
+func _current_weapon_icon() -> String:
+	if GameState.equipped_weapon != "":
+		return GameState.WEAPON_ITEMS.get(GameState.equipped_weapon, {}).get("icon", "")
+	return GameState.WEAPONS.get(GameState.selected_class, {}).get("icon", "")
+
+
+## Só o emoji mesmo (sem sprite dedicado), igual ao ItemPickup no chão.
+func _build_weapon_icon() -> void:
+	_weapon_icon = Label3D.new()
+	_weapon_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_weapon_icon.no_depth_test = true
+	_weapon_icon.outline_size = 8
+	_weapon_icon.font_size = 48
+	_weapon_icon.visible = false
+	add_child(_weapon_icon)
+
+
+## Reposiciona o ícone na frente do personagem, na direção da mira — chamado
+## todo frame porque a mira muda mesmo sem atacar.
+func _update_weapon_icon() -> void:
+	var icon := _current_weapon_icon()
+	if icon == "":
+		_weapon_icon.visible = false
+		return
+	_weapon_icon.visible = true
+	_weapon_icon.text = icon
+	_weapon_icon.position = CAST_OFFSET + _aim_direction() * WEAPON_ICON_OFFSET
+
+
+## Trilho escuro + preenchimento branco translúcido, no mesmo pitch da câmera
+## fixa que a HealthBar usa (billboard por eixo desalinharia o preenchimento).
+func _build_attack_bar() -> void:
+	var bar := Node3D.new()
+	bar.position.y = ATTACK_BAR_HEIGHT
+	bar.rotation_degrees.x = Iso.CAM_PITCH
+	add_child(bar)
+	_make_bar_quad(bar, ATTACK_BAR_TRACK, 0.0)
+	_attack_bar_fill = _make_bar_quad(bar, ATTACK_BAR_FILL, 0.01)
+
+
+func _make_bar_quad(parent: Node3D, color: Color, z_offset: float) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	mi.mesh = quad
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.no_depth_test = true
+	mat.albedo_color = color
+	mi.material_override = mat
+	mi.scale = Vector3(ATTACK_BAR_WIDTH, ATTACK_BAR_THICKNESS, 1.0)
+	mi.position.z = z_offset
+	parent.add_child(mi)
+	return mi
+
+
+## Enche da esquerda pra direita conforme a recarga passa; cheia = pronto.
+## O orbe carregável não tem recarga enquanto carrega, então fica cheia.
+func _update_attack_bar() -> void:
+	var ratio := 1.0
+	if _attack_cd > 0.0:
+		ratio = clampf(1.0 - _attack_cd / _attack_cd_total, 0.0, 1.0)
+	var filled := ATTACK_BAR_WIDTH * ratio
+	_attack_bar_fill.scale = Vector3(maxf(filled, 0.001), ATTACK_BAR_THICKNESS, 1.0)
+	_attack_bar_fill.position.x = -ATTACK_BAR_WIDTH / 2.0 + filled / 2.0
+
+
+## Direção da mira no plano XZ — mouse exatamente em cima do player cai pra frente.
+func _aim_direction() -> Vector3:
+	var dir := Iso.flat_direction(global_position, Iso.mouse_ground_position(self))
+	return dir if dir != Vector3.ZERO else Vector3.FORWARD
+
+
 ## Debuff de veneno: dentro da poça ele é renovado a cada frame (não expira);
 ## ao sair, começa a contar POISON_LINGER s até acabar, tickando até lá.
 func _update_poison(delta: float) -> void:
@@ -365,19 +506,114 @@ func _explosion_scale() -> float:
 	return 1.0 + WAVE_ORB_EXPLOSION_BONUS * _upgrade_level()
 
 
+## Único ponto que arma a recarga — guarda o total pra barra fantasma saber a
+## fração que falta.
+func _set_attack_cd(seconds: float) -> void:
+	_attack_cd = seconds
+	_attack_cd_total = maxf(seconds, 0.01)
+
+
 func _auto_attack() -> void:
-	_attack_cd = ATTACK_COOLDOWN.get(GameState.selected_class, MAGE_ATTACK_CD)
 	_moving = false
 	velocity = Vector3.ZERO
 
-	var dir := Iso.flat_direction(global_position, Iso.mouse_ground_position(self))
-	if dir == Vector3.ZERO:
-		dir = Vector3.FORWARD  # mouse exatamente em cima do player
+	var dir := _aim_direction()
 
+	# arma dropada por inimigo tem prioridade sobre o auto-attack da classe
+	match GameState.equipped_weapon:
+		"pistola":
+			_start_pistol_burst(dir)
+			return
+		"zarabatana":
+			_set_attack_cd(BLOWGUN_COOLDOWN)
+			_blowgun_attack(dir)
+			return
+		"luva":
+			_set_attack_cd(GLOVE_COOLDOWN)
+			_glove_attack(dir)
+			return
+
+	_set_attack_cd(ATTACK_COOLDOWN.get(GameState.selected_class, MAGE_ATTACK_CD))
 	match GameState.selected_class:
 		"lutador": _melee_attack(dir)
 		"arqueiro": _arrow_volley(dir)
 		_: _orb_attack(dir)
+
+
+## Rajada de 2 tiros rápidos e SÓ DEPOIS entra em recarga — por isso o cooldown
+## cheio já é setado aqui (recarga conta a partir do gatilho, não do 2º tiro).
+func _start_pistol_burst(dir: Vector3) -> void:
+	_set_attack_cd(PISTOL_COOLDOWN)
+	_pistol_burst_dir = dir
+	_fire_pistol_shot(dir)
+	_pistol_burst_left = PISTOL_BURST_SHOTS - 1
+	_pistol_burst_timer = PISTOL_BURST_GAP
+
+
+func _update_pistol_burst(delta: float) -> void:
+	if _pistol_burst_left <= 0:
+		return
+	_pistol_burst_timer -= delta
+	if _pistol_burst_timer <= 0.0:
+		_fire_pistol_shot(_pistol_burst_dir)
+		_pistol_burst_left -= 1
+
+
+func _fire_pistol_shot(dir: Vector3) -> void:
+	var bolt: MagicBolt = BOLT_SCENE.instantiate()
+	bolt.is_arrow = true
+	bolt.direction = dir
+	bolt.damage = PISTOL_DAMAGE
+	bolt.position = global_position + CAST_OFFSET
+	get_tree().current_scene.add_child(bolt)
+
+
+func _blowgun_attack(dir: Vector3) -> void:
+	var dart: MagicBolt = BOLT_SCENE.instantiate()
+	dart.is_arrow = true
+	dart.direction = dir
+	dart.damage = BLOWGUN_DAMAGE
+	dart.applies_poison = true
+	dart.position = global_position + CAST_OFFSET
+	get_tree().current_scene.add_child(dart)
+
+
+## Orbe carregável: enquanto o ataque estiver segurado (e sem recarga pendente)
+## só acumula carga; dispara ao soltar o botão, com dano/estouro proporcionais.
+func _update_charge_orb(delta: float) -> void:
+	if _attack_cd > 0.0:
+		return
+	if Input.is_action_pressed("attack"):
+		_orb_charge_time = minf(_orb_charge_time + delta, CHARGE_ORB_MAX_TIME)
+		_moving = false
+		velocity = Vector3.ZERO
+	elif _orb_charge_time > 0.0:
+		_fire_charged_orb(_orb_charge_time)
+		_orb_charge_time = 0.0
+		_set_attack_cd(ORB_COOLDOWN)
+
+
+func _fire_charged_orb(charge_time: float) -> void:
+	var t := charge_time / CHARGE_ORB_MAX_TIME
+	var orb: MagicBolt = BOLT_SCENE.instantiate()
+	orb.direction = _aim_direction()
+	orb.explosion_damage = roundi(MagicBolt.EXPLOSION_DAMAGE * (1.0 + t * CHARGE_ORB_DAMAGE_BONUS))
+	orb.explosion_scale = _explosion_scale() * (1.0 + t * CHARGE_ORB_EXPLOSION_BONUS)
+	orb.position = global_position + CAST_OFFSET
+	get_tree().current_scene.add_child(orb)
+
+
+## Luva: 3 orbes fracos lado a lado (mesmo padrão espacial da flechada do arqueiro).
+func _glove_attack(dir: Vector3) -> void:
+	var side := dir.cross(Vector3.UP).normalized()
+	for i in GLOVE_SHOTS:
+		var offset := (i - (GLOVE_SHOTS - 1) / 2.0) * GLOVE_SPACING
+		var orb: MagicBolt = BOLT_SCENE.instantiate()
+		orb.direction = dir
+		orb.explosion_damage = GLOVE_DAMAGE
+		orb.explosion_scale = _explosion_scale() * GLOVE_EXPLOSION_MULT
+		orb.position = global_position + CAST_OFFSET + side * offset
+		get_tree().current_scene.add_child(orb)
 
 
 func _melee_attack(dir: Vector3) -> void:
@@ -397,6 +633,7 @@ func _arrow_volley(dir: Vector3) -> void:
 		var arrow: MagicBolt = BOLT_SCENE.instantiate()
 		arrow.is_arrow = true
 		arrow.direction = dir
+		arrow.damage = ARROW_DAMAGE
 		arrow.position = global_position + CAST_OFFSET + side * offset
 		get_tree().current_scene.add_child(arrow)
 

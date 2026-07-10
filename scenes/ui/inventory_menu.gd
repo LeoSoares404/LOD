@@ -1,13 +1,16 @@
 extends CanvasLayer
 
 const INVENTORY_SLOTS := 12
+const GEM_ICONS := {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡"}
 
 @onready var menu_panel: Panel = $MenuPanel
 @onready var slots_container: GridContainer = $MenuPanel/VBoxContainer/SlotsContainer
+@onready var weapon_slot: ColorRect = $MenuPanel/VBoxContainer/WeaponRow/WeaponSlot
 @onready var settings_button: Button = $MenuPanel/VBoxContainer/SettingsButton
 
 var is_open := false
 var inventory_items: Array = []
+var weapon_item: Dictionary = {}  # {} = slot vazio → auto-attack da classe
 var skills_menu_node: Node = null
 var gems_inventory = {
 	"red": 3,    # 3 pedras vermelhas
@@ -21,13 +24,20 @@ func _ready() -> void:
 	menu_panel.visible = false
 	inventory_items.resize(INVENTORY_SLOTS)
 	_create_inventory_slots()
+	_setup_weapon_slot()
 	_create_gems_section()
 	settings_button.pressed.connect(_on_settings_pressed)
 	EventBus.item_picked_up.connect(add_item)
 
-	var starting_weapon: Dictionary = GameState.WEAPONS.get(GameState.selected_class, {})
-	if not starting_weapon.is_empty():
-		add_item(starting_weapon)
+	# reflete o que o GameState já traz (a cena recarrega na morte, o autoload não)
+	weapon_item = _current_weapon_item()
+	_update_weapon_visual()
+
+
+func _current_weapon_item() -> Dictionary:
+	if GameState.equipped_weapon != "":
+		return GameState.WEAPON_ITEMS.get(GameState.equipped_weapon, {})
+	return GameState.WEAPONS.get(GameState.selected_class, {})
 
 
 ## Input.is_key_just_pressed() não existe na API — detecta o aperto via evento.
@@ -42,15 +52,20 @@ func toggle_menu() -> void:
 	menu_panel.visible = is_open
 
 
+## Slots são ColorRect sem script: o drag-and-drop vem por set_drag_forwarding
+## (mesmo caminho das pedras — Control só chama _get_drag_data em si mesmo).
 func _create_inventory_slots() -> void:
 	for i in INVENTORY_SLOTS:
-		var slot = ColorRect.new()
+		var slot := ColorRect.new()
 		slot.color = Color(0.2, 0.2, 0.25, 0.8)
 		slot.custom_minimum_size = Vector2(50, 50)
-		slot.mouse_entered.connect(_on_slot_hovered.bindv([i]))
-		slot.gui_input.connect(_on_slot_gui_input.bindv([i]))
+		slot.set_drag_forwarding(
+			_get_slot_drag_data.bind(i, slot),
+			_can_drop_on_slot.bind(i),
+			_drop_on_slot.bind(i),
+		)
 
-		var label = Label.new()
+		var label := Label.new()
 		label.name = "Label"
 		label.text = str(i + 1)
 		label.add_theme_font_size_override("font_size", 10)
@@ -59,15 +74,10 @@ func _create_inventory_slots() -> void:
 		slots_container.add_child(slot)
 
 
-func _on_slot_hovered(slot_index: int) -> void:
-	pass  # tooltip futuro
-
-
-## Clique num slot ocupado remove o item (drop rápido — sem menu de contexto).
-func _on_slot_gui_input(event: InputEvent, slot_index: int) -> void:
-	if event is InputEventMouseButton and event.pressed \
-			and event.button_index == MOUSE_BUTTON_LEFT:
-		remove_item(slot_index)
+func _setup_weapon_slot() -> void:
+	weapon_slot.set_drag_forwarding(
+		_get_weapon_drag_data.bind(weapon_slot), _can_drop_on_weapon, _drop_on_weapon
+	)
 
 
 ## Adiciona no primeiro slot vazio. Retorna o índice ocupado, ou -1 se cheio.
@@ -88,11 +98,89 @@ func remove_item(slot_index: int) -> void:
 	_update_slot_visual(slot_index)
 
 
+# --- drag & drop ------------------------------------------------------------
+
+func _get_slot_drag_data(_at_position: Vector2, slot_index: int, slot: ColorRect) -> Variant:
+	var item: Variant = inventory_items[slot_index]
+	if item == null:
+		return null
+	slot.set_drag_preview(_make_preview(item["icon"]))
+	return {"src": "inv", "index": slot_index}
+
+
+func _get_weapon_drag_data(_at_position: Vector2, slot: ColorRect) -> Variant:
+	if weapon_item.is_empty():
+		return null
+	slot.set_drag_preview(_make_preview(weapon_item["icon"]))
+	return {"src": "weapon"}
+
+
+## Só aceita os dicts daqui — o drag das pedras carrega uma String.
+func _can_drop_on_slot(_at_position: Vector2, data: Variant, _slot_index: int) -> bool:
+	return data is Dictionary and data.has("src")
+
+
+func _can_drop_on_weapon(_at_position: Vector2, data: Variant) -> bool:
+	if not (data is Dictionary and data.get("src") == "inv"):
+		return false
+	var item: Variant = inventory_items[data["index"]]
+	return item != null and item.has("weapon_id")
+
+
+func _drop_on_slot(_at_position: Vector2, data: Variant, slot_index: int) -> void:
+	if data["src"] == "weapon":
+		if inventory_items[slot_index] != null:
+			return  # desequipar só em slot vazio — nada de sobrescrever item
+		inventory_items[slot_index] = weapon_item
+		_update_slot_visual(slot_index)
+		_equip({})
+		return
+
+	var from: int = data["index"]
+	var swapped: Variant = inventory_items[slot_index]
+	inventory_items[slot_index] = inventory_items[from]
+	inventory_items[from] = swapped
+	_update_slot_visual(slot_index)
+	_update_slot_visual(from)
+
+
+## A arma que estava equipada volta pro slot de onde a nova saiu — troca 1:1,
+## sem depender de ter espaço livre no inventário.
+func _drop_on_weapon(_at_position: Vector2, data: Variant) -> void:
+	var from: int = data["index"]
+	var incoming: Dictionary = inventory_items[from]
+	inventory_items[from] = null if weapon_item.is_empty() else weapon_item
+	_update_slot_visual(from)
+	_equip(incoming)
+
+
+## Slot de arma vazio = weapon_id "" = auto-attack padrão da classe.
+func _equip(item: Dictionary) -> void:
+	weapon_item = item
+	_update_weapon_visual()
+	EventBus.weapon_equipped.emit(item.get("weapon_id", ""))
+
+
 func _update_slot_visual(slot_index: int) -> void:
 	var slot: ColorRect = slots_container.get_child(slot_index)
 	var label: Label = slot.get_node("Label")
 	var item: Variant = inventory_items[slot_index]
 	label.text = item["icon"] if item else str(slot_index + 1)
+
+
+func _update_weapon_visual() -> void:
+	var label: Label = weapon_slot.get_node("Label")
+	label.text = weapon_item.get("icon", "—")
+
+
+func _make_preview(icon: String) -> Control:
+	var preview := Control.new()
+	preview.custom_minimum_size = Vector2(40, 40)
+	var label := Label.new()
+	label.text = icon
+	label.add_theme_font_size_override("font_size", 20)
+	preview.add_child(label)
+	return preview
 
 
 func _on_settings_pressed() -> void:
@@ -111,12 +199,9 @@ func _create_gems_section() -> void:
 	gems_hbox.custom_minimum_size = Vector2(0, 60)
 	slots_container.add_child(gems_hbox)
 
-	var gem_types = ["red", "green", "blue", "yellow"]
-	var gem_icons = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡"}
-
-	for gem_type in gem_types:
+	for gem_type in GEM_ICONS:
 		var gem_button = Button.new()
-		gem_button.text = gem_icons[gem_type] + "\n" + str(gems_inventory[gem_type])
+		gem_button.text = GEM_ICONS[gem_type] + "\n" + str(gems_inventory[gem_type])
 		gem_button.custom_minimum_size = Vector2(50, 50)
 		gem_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -131,7 +216,7 @@ func _create_gems_section() -> void:
 func _get_gem_drag_data(_at_position: Vector2, gem_type: String, button: Button) -> Variant:
 	if gems_inventory[gem_type] <= 0:
 		return null
-	button.set_drag_preview(_create_gem_preview(gem_type))
+	button.set_drag_preview(_make_preview(GEM_ICONS[gem_type]))
 	return gem_type
 
 
@@ -141,13 +226,3 @@ func _cant_drop(_at_position: Vector2, _data: Variant) -> bool:
 
 func _no_drop(_at_position: Vector2, _data: Variant) -> void:
 	pass
-
-
-func _create_gem_preview(gem_type: String) -> Control:
-	var preview = Control.new()
-	preview.custom_minimum_size = Vector2(40, 40)
-	var label = Label.new()
-	label.text = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡"}[gem_type]
-	label.add_theme_font_size_override("font_size", 20)
-	preview.add_child(label)
-	return preview

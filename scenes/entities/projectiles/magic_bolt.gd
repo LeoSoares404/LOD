@@ -15,16 +15,24 @@ const ORB_RANGE := 9.9  # m
 const ARROW_RANGE := 14.0  # m
 
 const EXPLOSION_SCENE := preload("res://scenes/entities/projectiles/bolt_explosion.tscn")
-const EXPLOSION_DAMAGE := 6  # golpe cheio do mago, entregue pelo estouro
+const EXPLOSION_DAMAGE := 6  # golpe cheio do mago, entregue pelo estouro (valor padrão)
 const DIRECT_HIT_RATIO := 0.5  # acerto direto (sem estourar) vale metade
 
 const TRAIL_STEP := 0.5  # m entre um rastro e o outro
 const TRAIL_FADE := 0.28  # s até o rastro sumir
 
+# veneno (dardo da zarabatana): dano por tempo que continua mesmo com o dardo
+# já desfeito — por isso os ticks rodam soltos (await), não presos ao nó.
+const POISON_DAMAGE := 1
+const POISON_TICKS := 3
+const POISON_TICK_INTERVAL := 1.0
+
 var direction := Vector3.RIGHT
 ## Definidos pelo Player ANTES do add_child (o _ready lê pra montar o visual).
 var is_arrow := false
+var applies_poison := false  # dardo da zarabatana
 var explosion_scale := 1.0  # cresce por onda (só o orbe do mago)
+var explosion_damage := EXPLOSION_DAMAGE  # sobrescrito pelo orbe carregado e pela luva
 
 var _speed := SPEED
 var _range := ORB_RANGE
@@ -48,7 +56,7 @@ func _ready() -> void:
 
 ## Acerto direto do orbe: metade do estouro, nunca zero (o dano é int).
 func direct_damage() -> int:
-	return maxi(1, roundi(EXPLOSION_DAMAGE * DIRECT_HIT_RATIO))
+	return maxi(1, roundi(explosion_damage * DIRECT_HIT_RATIO))
 
 
 ## Uma instância de dano só: ou o acerto direto, ou o estouro.
@@ -56,9 +64,20 @@ func will_explode() -> bool:
 	return not is_arrow and not _hit_direct
 
 
-func _on_direct_hit(_area: Area3D) -> void:
+func _on_direct_hit(area: Area3D) -> void:
 	_hit_direct = true
+	if applies_poison and area is HurtboxComponent and area.health:
+		_apply_poison(area.health)
 	_vanish()
+
+
+## Ticks soltos (não presos ao dardo, que já vai sumir): seguem batendo no alvo
+## mesmo depois do impacto, até acabar ou o alvo morrer/sumir.
+func _apply_poison(target: HealthComponent) -> void:
+	for _tick in POISON_TICKS:
+		await get_tree().create_timer(POISON_TICK_INTERVAL).timeout
+		if is_instance_valid(target) and target.health > 0:
+			target.take_damage(POISON_DAMAGE)
 
 
 ## Orbe do mago: núcleo pulsante com um halo escuro atrás, pra ler como esfera
@@ -151,7 +170,7 @@ func _vanish() -> void:
 	_spent = true
 	if will_explode():
 		var boom: Explosion = EXPLOSION_SCENE.instantiate()
-		boom.damage = EXPLOSION_DAMAGE
+		boom.damage = explosion_damage
 		boom.position = global_position
 		boom.scale = Vector3.ONE * explosion_scale  # a onda faz o estouro crescer
 		# deferido: não dá pra mexer na árvore durante o flush das colisões

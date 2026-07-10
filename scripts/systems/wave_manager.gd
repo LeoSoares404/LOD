@@ -8,6 +8,7 @@ const GHOUL_SCENE := preload("res://scenes/entities/enemies/ghoul.tscn")
 const SPRINTER_SCENE := preload("res://scenes/entities/enemies/sprinter.tscn")
 const BOSS_SCENE := preload("res://scenes/entities/enemies/ghoul_boss.tscn")
 const DASH_BOSS_SCENE := preload("res://scenes/entities/enemies/dash_boss.tscn")
+const ITEM_PICKUP_SCENE := preload("res://scenes/entities/pickups/item_pickup.tscn")
 
 const GHOUL_WAVES := [4, 6]     # quantidade de ghouls nas rodadas 1 e 2
 const SPRINTER_WAVES := [0, 3]  # sprinters só entram com tudo na rodada 2
@@ -23,6 +24,7 @@ const MIN_PLAYER_DIST := 11.0   # não nascer em cima do player
 var _wave := 0
 var _alive := 0
 var _active := false
+var _kills := 0
 var _player: Node3D
 var _rng := RandomNumberGenerator.new()
 
@@ -81,7 +83,8 @@ func _spawn(enemy: Node3D, pos: Vector3) -> void:
 	_alive += 1
 
 
-func _on_enemy_died(_data: Resource, _pos: Vector3) -> void:
+func _on_enemy_died(_data: Resource, pos: Vector3) -> void:
+	_maybe_drop_weapon(pos)
 	_alive -= 1
 	if not _active or _alive > 0:
 		return
@@ -90,6 +93,18 @@ func _on_enemy_died(_data: Resource, _pos: Vector3) -> void:
 		_schedule_next(NEXT_DELAY)
 	else:
 		EventBus.victory.emit()  # boss final derrotado
+
+
+func _maybe_drop_weapon(pos: Vector3) -> void:
+	var drops := GameState.ranged_weapon_drops()
+	if _kills >= drops.size():
+		return
+	var weapon_id: String = drops[_kills]
+	_kills += 1
+	var pickup: ItemPickup = ITEM_PICKUP_SCENE.instantiate()
+	pickup.item = GameState.WEAPON_ITEMS[weapon_id]
+	pickup.position = pos
+	get_tree().current_scene.add_child(pickup)
 
 
 ## Ponto aleatório no anel externo do mapa, longe do player.
