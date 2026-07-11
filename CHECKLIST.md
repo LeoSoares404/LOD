@@ -39,7 +39,9 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 - [x] ✅ **Fonte 8-bit** (Press Start 2P) em toda a UI via tema padrão (`assets/ui/ui_theme.tres`)
 - [x] ✅ **Menu de pausa reformado (ESC):** moldura pixel-art dark-fantasy (`pause_frame.png`), 2 páginas — Pausa (Continuar / Configuração / Sair) e Configuração (Áudio + Estilo de jogo Clássico/Moderno + Voltar); conteúdo encaixado no centro da moldura
 - [x] ✅ **Inventário** movido pro canto inferior direito com ícone HD de mochila (clicável ou tecla I)
-- [ ] 🟡 **Aplicar a moldura + fonte nos outros menus** (Armadura, Gems, Skills, Inventário interno) — ainda com layout/estilo antigo
+- [x] ✅ **Inventário com moldura dark-fantasy** (`inventory_frame.png`): 12 slots sobre os sockets da arte, título 8-bit, gems na base, **fundo escurece ao abrir**; itens do Felipe integrados (arma inicial por classe)
+- [x] ✅ **Mochila 16-bit** pixel-art no HUD (trocou a HD ciana)
+- [ ] 🟡 **Aplicar a moldura + fonte nos outros menus** (Armadura, Gems, Skills) — ainda com layout/estilo antigo
 - [ ] 🟡 **Estilizar os botões** (fundo/borda dark-fantasy no lugar do cinza padrão do Godot)
 - [ ] 🔴 **Conflito de tecla:** Inventário **e** menu de Skills abrem ambos na tecla **I** — separar (ex.: Skills em K)
 - [ ] 🟡 Gems no **Ctrl** (tecla-modificador) é ruim pra toggle — trocar por uma tecla normal (ex.: G)
@@ -52,6 +54,14 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 - [ ] 🔴 **Aplicar os atributos da classe no player** — hoje a classe é guardada mas o player usa stats fixos; ligar isso faz a escolha ter efeito
 - [ ] 💡 **Wallpaper** da tela inicial (arte dark-fantasy pixel sendo gerada por IA) no lugar do chão de pedra
 - [ ] 💡 **Multiplayer online + save do personagem** (feature grande, adiada — "depois vemos")
+
+## 4c. Mundo aberto / Passagens
+- [x] ✅ **Porta reutilizável** (`scenes/entities/door.{gd,tscn}`): `Area3D` que troca de cena ao **clicar** (picking 3D) **ou encostar** (proximidade); arte `door.png` (arco de pedra com céu+grama = saída)
+- [x] ✅ **Passagem cripta → mundo**: porta no `main.tscn` leva ao `overworld.tscn`
+- [x] ✅ **Overworld** (`scenes/world/overworld.tscn`): mundo aberto novo (campo verde, luz de dia, player/câmera/HUD) com **porta de volta** pra cripta
+- [ ] 🟡 **Overworld está vazio de propósito** — falta o design (hub/cidade? portais pras várias criptas? exploração?)
+- [ ] 🟡 Clicar na porta também dispara o ataque (botão esq.) — cosmético; trocar por tecla de interagir se incomodar
+- [ ] 💡 **Múltiplos portais** no overworld pras várias criptas (fogo/terra/veneno…)
 
 ## 5. Progressão (Inventário / Gems / Armadura)
 > Todos existem como interface, mas **ainda não mexem no gameplay** — é aqui que tem mais o que ligar.
@@ -66,7 +76,9 @@ Legenda: ✅ pronto · 🟡 parcial/placeholder · 🔴 não conectado ou com bu
 
 ## 6. Arte & Visual
 - [x] ✅ Arte HD sobreviveu ao 3D: chão, emblema, boss HD, orbes, ícones de skill
-- [ ] 🟡 Player e ghoul ainda são pixel billboard (contraste com o HD) — eventual upgrade pra HD
+- [x] ✅ **Mago pixel roxo** (`mago_walk.png`): billboard HD removido, voltou ao spritesheet 5×3 recolorido de ciano → roxo arcano
+- [ ] 🟡 Ghoul ainda é pixel billboard genérico — sem arte própria
+- [ ] 💡 **Arte melhorada do mago** (spritesheet dark-fantasy) — prompt/PixelLab quando quiser subir o nível do pixel
 - [ ] 🟡 Mundo 3D com texturas placeholder (paredes/chão sólidos)
 
 ## 7. Repositório / Organização

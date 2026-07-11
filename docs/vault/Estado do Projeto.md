@@ -64,6 +64,21 @@ Foco: dar função real ao inventário (até então só 12 slots visuais sem ló
 - Arma equipada não muda o combate — hoje o ataque (flecha/orbe/foice) já é escolhido por `GameState.selected_class`, então visualmente já "bate" com a arma certa, mas não há de fato uma leitura do item equipado.
 - Gems e Armadura seguem com o mesmo problema antigo: interface pronta, efeito não aplicado no gameplay (ver `CHECKLIST.md` seção 5).
 
+## Sessão merge Felipe + arte pixel + passagem pro mundo (Leo + Claude, 10/07/2026)
+
+Puxamos a branch do **Felipe** pra `main` e seguimos com arte e um novo mundo.
+
+- **Merge da branch do Felipe** (`origin/Felipe` → `main`): entrou **auto-attack por classe** (foice em cone do lutador, flechas do arqueiro, orbe explosivo do mago; escala por onda), **mapa de lodo/ácido** (`swamp_map`, agora é o mapa do `main.tscn`) com **poças de veneno** (slow + dano por tempo + caveirinha), **números de dano** do player e refactor de `_cast_super` → `_damage_area`. Conflitos resolvidos à mão: `player.gd` (mantido auto-attack + a nossa animação) e `inventory_menu.gd` (mantida a nossa moldura + a lógica de itens dele).
+- **Moldura do inventário** (`assets/sprites/ui/inventory_frame.png`, recortada de IA): reconstruído `inventory_menu` com a moldura de fundo, 12 slots sobre os sockets da arte, título 8-bit e gems na faixa de baixo. **Fundo escurece** ao abrir (`ColorRect` 82%); clicar fora / I / ESC fecha.
+- **Mochila 16-bit** (`inventory_backpack.png`): trocada a arte HD ciana por pixel-art dark-fantasy (dourado/fogo), casando com a moldura e a fonte.
+- **Mago pixel roxo**: o **billboard HD foi removido**; o player voltou ao **sprite pixel spritesheet** (animação por frame 5×3) mantendo o auto-attack do Felipe. `mago_walk.png` = `player_walk` recolorido (ciano → roxo arcano) por rotação de matiz.
+- **Passagem cripta ↔ mundo**: `scenes/entities/door.{gd,tscn}` — `Area3D` reutilizável que troca de cena ao **clicar** (picking 3D) **ou encostar** (`body_entered`). Arte `door.png` = arco de pedra pixel com céu+grama na abertura. `main.tscn` tem a porta pro **`scenes/world/overworld.tscn`** (mundo aberto novo: campo verde, luz de dia, player/câmera/HUD) e o overworld tem porta de volta. `hud.gd` agora acha o inventário na cena atual (funciona nos dois mundos).
+
+### Pendências desta frente
+- **Overworld é um campo verde vazio** de propósito — é a tela em branco pro design (hub/cidade? portais pras várias criptas? exploração?).
+- Clicar na porta também dispara o ataque (botão esquerdo = atacar) — cosmético; o natural é andar até ela. Dá pra trocar por tecla de interagir se incomodar.
+- Atributos da classe ainda **não** aplicados no player (só vida/mana/dano/veloc. guardados em `GameState`).
+
 ## Em aberto / próximos passos possíveis
 
 - Paredes ainda são cor sólida (placeholder) — falta textura de pedra real.
