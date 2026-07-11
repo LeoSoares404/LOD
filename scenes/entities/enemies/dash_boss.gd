@@ -30,6 +30,8 @@ const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
 var _player: Node3D
 var _knockback := Vector3.ZERO
 var _stun_time := 0.0
+var _slow_time := 0.0
+var _slow_factor := 0.0
 var _anim_time := 0.0
 var _base_spr_pos: Vector3
 var _base_spr_scale: Vector3
@@ -49,6 +51,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _slow_time > 0.0:
+		_slow_time -= delta
 	if _stun_time > 0.0:
 		_stun_time -= delta
 		if _stun_time <= 0.0:
@@ -92,7 +96,7 @@ func _do_chase(delta: float) -> void:
 		chase = _player.global_position - global_position
 		chase.y = 0.0
 		if chase.length() > 0.1:
-			chase = chase.normalized() * CHASE_SPEED
+			chase = chase.normalized() * CHASE_SPEED * _slow_mult()
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector3.ZERO, KNOCKBACK_DECAY * delta)
 	move_and_slide()
@@ -166,6 +170,9 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		if is_instance_valid(_telegraph):
 			_telegraph.queue_free()
 			_telegraph = null
+	if hitbox.slow_duration > 0.0:
+		_slow_time = hitbox.slow_duration  # renova a duração (não acumula)
+		_slow_factor = hitbox.slow_factor
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT
 	else:
@@ -176,10 +183,16 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		away.y = 0.0
 		_knockback = away.normalized() * hitbox.knockback_force * KNOCKBACK_RESIST
 
-	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
-	dmg_num.text = "-%d" % hitbox.damage
-	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
-	get_tree().current_scene.add_child(dmg_num)
+	# hits de dano 0 (slow puro da rapiera) não mostram número
+	if hitbox.damage > 0:
+		var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+		dmg_num.text = "-%d" % hitbox.damage
+		dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
+		get_tree().current_scene.add_child(dmg_num)
+
+
+func _slow_mult() -> float:
+	return 1.0 - _slow_factor if _slow_time > 0.0 else 1.0
 
 
 func _on_died() -> void:

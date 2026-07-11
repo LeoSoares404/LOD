@@ -7,6 +7,8 @@ extends Area3D
 @export var damage := 1
 @export var knockback_force := 0.0
 @export var stun_duration := 0.0  # s de atordoamento aplicado ao alvo (0 = nenhum)
+@export var slow_factor := 0.0     # fração de velocidade removida do alvo (0.2 = 20% + lento)
+@export var slow_duration := 0.0   # s que o slow dura; re-aplicar renova, não acumula
 ## 0 = dano só ao encostar (projétil). > 0 = também re-aplica a cada N segundos
 ## enquanto encostado (contato de inimigo, aura).
 @export var tick_interval := 0.0

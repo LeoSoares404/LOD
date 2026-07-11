@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/entities/player/player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="2_glow"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/player_walk.png" id="3_playertex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/mago_walk.png" id="3_playertex"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
 [ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="5_hurtbox"]
 [ext_resource type="Script" path="res://scripts/components/health_bar.gd" id="6_bar"]

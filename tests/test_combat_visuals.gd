@@ -15,10 +15,11 @@ func _ready() -> void:
 	_test_arrow_aims_at_direction()
 	_test_orb_stays_billboard()
 	_test_orb_explodes_at_half_screen()
-	_test_orb_deals_one_damage_instance()
+	_test_orb_always_explodes()
 	_test_melee_hits_only_the_mouse_arc()
 	_test_scythe_sweeps_the_damage_cone()
 	_test_attack_cooldowns()
+	_test_orb_charge_stages()
 	_test_wave_upgrades()
 	_test_poison_damage_is_percent_of_max_health()
 	_test_poison_icon_follows_debuff()
@@ -89,18 +90,13 @@ func _test_orb_explodes_at_half_screen() -> void:
 	_check(arrow._range > MagicBolt.ORB_RANGE, "a flecha deveria alcançar mais que o orbe")
 	arrow.queue_free()
 
-	# piso de 1: o dano é int, um estouro de 1 não pode virar acerto direto de 0
-	_check(maxi(1, roundi(1 * MagicBolt.DIRECT_HIT_RATIO)) == 1, "acerto direto nunca pode dar 0")
 
-
-## Uma instância de dano só: acertou o inimigo em cheio, NÃO estoura. Só quem
-## chega ao fim do voo (ou bate na parede) estoura.
-func _test_orb_deals_one_damage_instance() -> void:
+## O orbe estoura ao encostar em qualquer coisa — o estouro é o único dano do AA.
+func _test_orb_always_explodes() -> void:
 	var orb: MagicBolt = BOLT.instantiate()
 	add_child(orb)
-	_check(orb.will_explode(), "orbe intacto deveria estourar no fim do voo")
-	orb._on_direct_hit(null)  # simula o area_entered num inimigo
-	_check(not orb.will_explode(), "orbe que acertou em cheio NÃO pode também estourar")
+	_check(orb.will_explode(), "orbe do mago deveria sempre estourar")
+	_check(orb.damage == 0, "contato do orbe não fere; o dano é só do estouro")
 	orb.queue_free()
 
 	var arrow: MagicBolt = BOLT.instantiate()
@@ -228,6 +224,19 @@ func _test_attack_cooldowns() -> void:
 	var cd: Dictionary = Player.ATTACK_COOLDOWN
 	_check(is_equal_approx(cd["arqueiro"], cd["mago"] / 2.0), "arqueiro deveria atacar 2x mais rápido")
 	_check(is_equal_approx(cd["lutador"], cd["mago"] * 2.0), "lutador deveria atacar 2x mais lento")
+
+
+## Orbe carregável: 3 estágios discretos de 1.5s. Estágio N = N× (máx 3×);
+## carga parcial não sobe de estágio e passar de 4.5s trava no 3º.
+func _test_orb_charge_stages() -> void:
+	var player: Player = PLAYER.instantiate()
+	add_child(player)
+	_check(player._orb_charge_stage(0.0) == 1, "toque (0s) = estágio 1 (dano base)")
+	_check(player._orb_charge_stage(1.49) == 1, "carga parcial não sobe de estágio")
+	_check(player._orb_charge_stage(1.5) == 2, "1.5s = estágio 2")
+	_check(player._orb_charge_stage(3.0) == 3, "3.0s = estágio 3 (3×, o máximo)")
+	_check(player._orb_charge_stage(9.0) == 3, "passar de 4.5s trava no estágio 3")
+	player.queue_free()
 
 
 ## Veneno tira 2% da vida máxima por tick, com piso de 1 (o dano é int).

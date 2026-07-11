@@ -43,12 +43,15 @@ const WEAPON_ITEMS := {
 	"zarabatana": {"name": "Zarabatana", "icon": "🪈", "weapon_id": "zarabatana"},
 	"orbe": {"name": "Orbe Carregável", "icon": "🔮", "weapon_id": "orbe"},
 	"luva": {"name": "Luva Arcana", "icon": "🧤", "weapon_id": "luva"},
+	"martelo": {"name": "Bastão", "icon": "🏏", "weapon_id": "martelo"},
+	"rapiera": {"name": "Rapieira", "icon": "🤺", "weapon_id": "rapiera"},
 }
 
 # os 2 primeiros inimigos mortos da run largam uma arma nova, nesta ordem —
 # varia por classe (mago ganha orbe/luva; as outras, pistola/zarabatana).
 const RANGED_WEAPON_DROPS_BY_CLASS := {
 	"mago": ["orbe", "luva"],
+	"lutador": ["martelo", "rapiera"],
 }
 const DEFAULT_RANGED_WEAPON_DROPS := ["pistola", "zarabatana"]
 

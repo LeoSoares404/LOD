@@ -27,6 +27,8 @@ var _player: Node3D
 var _knockback := Vector3.ZERO
 var _shoot_timer := SHOOT_INTERVAL
 var _stun_time := 0.0
+var _slow_time := 0.0
+var _slow_factor := 0.0
 var _anim_time := 0.0
 var _base_spr_pos: Vector3
 var _base_spr_scale: Vector3
@@ -41,6 +43,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _slow_time > 0.0:
+		_slow_time -= delta
 	# atordoado: não persegue nem atira
 	if _stun_time > 0.0:
 		_stun_time -= delta
@@ -56,7 +60,7 @@ func _physics_process(delta: float) -> void:
 		var to_player := _player.global_position - global_position
 		to_player.y = 0.0
 		if to_player.length() > STOP_DISTANCE:
-			chase = to_player.normalized() * SPEED
+			chase = to_player.normalized() * SPEED * _slow_mult()
 		_shoot_timer -= delta
 		if _shoot_timer <= 0.0:
 			_shoot_timer = SHOOT_INTERVAL
@@ -127,6 +131,9 @@ func _shoot_trident(dir: Vector3) -> void:
 func _on_hit_received(hitbox: HitboxComponent) -> void:
 	if hitbox.stun_duration > 0.0:
 		_stun_time = hitbox.stun_duration
+	if hitbox.slow_duration > 0.0:
+		_slow_time = hitbox.slow_duration  # renova a duração (não acumula)
+		_slow_factor = hitbox.slow_factor
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT
 	else:
@@ -137,11 +144,16 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		away.y = 0.0
 		_knockback = away.normalized() * hitbox.knockback_force * KNOCKBACK_RESIST
 
-	# mostra número de dano
-	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
-	dmg_num.text = "-%d" % hitbox.damage
-	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
-	get_tree().current_scene.add_child(dmg_num)
+	# mostra número de dano (hits de dano 0, como slow puro da rapiera, não mostram)
+	if hitbox.damage > 0:
+		var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+		dmg_num.text = "-%d" % hitbox.damage
+		dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
+		get_tree().current_scene.add_child(dmg_num)
+
+
+func _slow_mult() -> float:
+	return 1.0 - _slow_factor if _slow_time > 0.0 else 1.0
 
 
 func _on_died() -> void:
