@@ -107,14 +107,14 @@ var _poison_icon: Sprite3D
 
 var _last_health := 0  # p/ virar dano em popup, venha de onde vier
 
-# billboard HD: animação por código (bob de respirar/andar), sem spritesheet
-const IDLE_BOB_SPEED := 2.6
-const WALK_BOB_SPEED := 7.0
-const IDLE_BOB_AMP := 0.025
-const WALK_BOB_AMP := 0.05
+# animação: spritesheet 5 colunas (0=parado, 1-4=andando) x 3 linhas de direção
+const ANIM_FPS := 8.0
+const ROW_DOWN := 0
+const ROW_UP := 1
+const ROW_SIDE := 2
 
 var _anim_time := 0.0
-var _base_spr_y := 0.0
+var _facing_row := ROW_DOWN
 
 @onready var _sprite: Sprite3D = %Sprite
 
@@ -130,7 +130,6 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	health.health_changed.connect(_on_health_changed)
 	hurtbox.hit_received.connect(_on_hit_received)
-	_base_spr_y = _sprite.position.y
 	_last_health = health.health
 	_build_poison_icon()
 	_emit_initial_status.call_deferred()  # deferido: garante que a HUD já conectou
@@ -262,12 +261,18 @@ func _skill_key_pressed(slot: int) -> bool:
 
 func _update_animation(delta: float) -> void:
 	var walking := _moving and velocity.length() > 0.1
-	if absf(velocity.x) > 0.05:
-		_sprite.flip_h = velocity.x < 0  # espelha pra encarar o lado do movimento
-	_anim_time += delta
-	var bob_speed := WALK_BOB_SPEED if walking else IDLE_BOB_SPEED
-	var bob_amp := WALK_BOB_AMP if walking else IDLE_BOB_AMP
-	_sprite.position.y = _base_spr_y + absf(sin(_anim_time * bob_speed)) * bob_amp
+	if walking:
+		# direção dominante decide a linha do spritesheet (tela: -Z = cima)
+		if absf(velocity.x) > absf(velocity.z):
+			_facing_row = ROW_SIDE
+			_sprite.flip_h = velocity.x < 0
+		else:
+			_facing_row = ROW_UP if velocity.z < 0 else ROW_DOWN
+		_anim_time += delta
+	else:
+		_anim_time = 0.0
+	var col := 1 + int(_anim_time * ANIM_FPS) % 4 if walking else 0
+	_sprite.frame = _facing_row * 5 + col
 
 
 ## Velocidade atual — reduzida enquanto estiver dentro de uma poça de veneno.

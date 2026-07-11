@@ -77,6 +77,7 @@ func _flash_banner(text: String, color: Color, hold := 1.6) -> void:
 
 
 func _on_inventory_pressed() -> void:
-	var inventory_menu = get_tree().root.get_node_or_null("Main/InventoryMenu")
+	# procura na cena atual (funciona tanto na cripta/Main quanto no Overworld)
+	var inventory_menu = get_tree().current_scene.get_node_or_null("InventoryMenu")
 	if inventory_menu:
 		inventory_menu.toggle_menu()

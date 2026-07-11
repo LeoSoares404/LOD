@@ -1,6 +1,7 @@
-[gd_scene load_steps=12 format=3 uid="uid://bcma8o84bciwp"]
+[gd_scene load_steps=13 format=3 uid="uid://bcma8o84bciwp"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/swamp_map.tscn" id="1_map"]
+[ext_resource type="PackedScene" path="res://scenes/entities/door.tscn" id="11_door"]
 [ext_resource type="PackedScene" path="res://scenes/entities/player/player.tscn" id="2_player"]
 [ext_resource type="Script" path="res://scenes/world/camera_rig.gd" id="3_rig"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
@@ -27,6 +28,10 @@ glow_bloom = 0.05
 environment = SubResource("Environment_main")
 
 [node name="SwampMap" parent="." instance=ExtResource("1_map")]
+
+[node name="ExitDoor" parent="." instance=ExtResource("11_door")]
+position = Vector3(33, 0, 13)
+target_scene = "res://scenes/world/overworld.tscn"
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(30.5, 0, 19)
