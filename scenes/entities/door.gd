@@ -4,11 +4,19 @@ extends Area3D
 ## (mover é botão direito; então andar até a porta também funciona.)
 
 @export_file("*.tscn") var target_scene: String = ""
+## textura opcional por instância (ex.: entrada escura de cripta vs. saída de dia)
+@export var texture: Texture2D = null
+## esconde o sprite próprio (quando o visual vem de um set-piece maior, ex.: a construção)
+@export var hide_sprite := false
 
 var _used := false
 
 
 func _ready() -> void:
+	if texture:
+		$Sprite.texture = texture
+	if hide_sprite:
+		$Sprite.visible = false
 	input_ray_pickable = true
 	get_viewport().physics_object_picking = true  # habilita clique em objeto 3D
 	input_event.connect(_on_input_event)

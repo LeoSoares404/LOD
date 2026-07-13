@@ -2,7 +2,8 @@ extends Control
 ## Tela inicial: Novo Jogo (escolha de classe) → Configuração → Sair.
 ## A classe escolhida vai pro GameState.selected_class antes de entrar no jogo.
 
-const GAME_SCENE := "res://scenes/main.tscn"
+# o jogo começa no mundo aberto (hub); a cripta entra-se por uma porta de lá
+const GAME_SCENE := "res://scenes/world/overworld.tscn"
 
 @onready var title_page: Control = $TitlePage
 @onready var class_page: Control = $ClassPage

@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_menu.tscn" id="4_inventory"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings_menu.tscn" id="5_settings"]
 [ext_resource type="PackedScene" path="res://scenes/entities/door.tscn" id="6_door"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/door_crypt.png" id="7_cryptdoor"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/crypt_entrance.png" id="8_crypt"]
 
 [sub_resource type="Environment" id="Environment_over"]
 background_mode = 1
@@ -50,9 +52,18 @@ light_energy = 1.3
 light_color = Color(1, 0.97, 0.88, 1)
 shadow_enabled = true
 
-[node name="BackDoor" parent="." instance=ExtResource("6_door")]
-position = Vector3(0, 0, -5)
+[node name="CryptEntrance" type="Sprite3D" parent="."]
+position = Vector3(0, 2.54, -4)
+pixel_size = 0.0075
+billboard = 1
+texture_filter = 0
+alpha_cut = 1
+texture = ExtResource("8_crypt")
+
+[node name="CryptDoor" parent="." instance=ExtResource("6_door")]
+position = Vector3(0, 0, -4)
 target_scene = "res://scenes/main.tscn"
+hide_sprite = true
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
 
