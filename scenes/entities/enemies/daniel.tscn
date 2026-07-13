@@ -1,60 +1,53 @@
 [gd_scene load_steps=11 format=3]
 
-[ext_resource type="Script" path="res://scenes/entities/enemies/dash_boss.gd" id="1_dashboss"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/boss2.png" id="2_bosstex"]
+[ext_resource type="Script" path="res://scenes/entities/enemies/daniel.gd" id="1_daniel"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ghoul_walk.png" id="2_ghoultex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/props/glow_gradient.tres" id="3_glow"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
 [ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="5_hurtbox"]
 [ext_resource type="Script" path="res://scripts/components/hitbox_component.gd" id="6_hitbox"]
 [ext_resource type="Script" path="res://scripts/components/health_bar.gd" id="7_bar"]
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_body"]
-radius = 0.75
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
-size = Vector3(3.75, 5.75, 1.5)
+size = Vector3(0.65, 1.0, 0.5)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_hit"]
-radius = 1.7
+radius = 0.4
 
-[node name="DashBoss" type="CharacterBody3D" groups=["enemies"]]
+[sub_resource type="SphereShape3D" id="SphereShape3D_body"]
+radius = 0.27
+
+[node name="Daniel" type="CharacterBody3D" groups=["enemies"]]
 collision_layer = 4
-collision_mask = 1
+collision_mask = 5
 motion_mode = 1
-script = ExtResource("1_dashboss")
+script = ExtResource("1_daniel")
 
 [node name="HealthComponent" type="Node" parent="."]
 script = ExtResource("4_health")
-max_health = 180
+max_health = 4
 
 [node name="Shadow" type="Sprite3D" parent="."]
-modulate = Color(0, 0, 0, 0.5)
+modulate = Color(0, 0, 0, 0.45)
 position = Vector3(0, 0.02, 0)
 rotation = Vector3(-1.5708, 0, 0)
-scale = Vector3(0.3, 0.12, 1)
+scale = Vector3(0.08, 0.042, 1)
 pixel_size = 0.0625
 texture = ExtResource("3_glow")
 
-[node name="Aura" type="OmniLight3D" parent="."]
-position = Vector3(0, 3.75, 0)
-light_color = Color(1, 0.35, 0.2, 1)
-light_energy = 0.8
-omni_range = 12.0
-
 [node name="Sprite" type="Sprite3D" parent="."]
-modulate = Color(1.3, 0.65, 0.6, 1)
-position = Vector3(0, 3.6, 0)
-scale = Vector3(0.2, 0.2, 0.2)
+modulate = Color(0.7, 1.3, 0.6, 1)
+position = Vector3(0, 0.65, 0)
+scale = Vector3(0.9, 0.9, 0.9)
 pixel_size = 0.0625
 billboard = 1
 texture_filter = 0
 alpha_cut = 1
-texture = ExtResource("2_bosstex")
-hframes = 3
-vframes = 1
+texture = ExtResource("2_ghoultex")
+hframes = 5
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-position = Vector3(0, 0.6, 0)
+position = Vector3(0, 0.27, 0)
 shape = SubResource("SphereShape3D_body")
 
 [node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
@@ -65,23 +58,21 @@ script = ExtResource("5_hurtbox")
 health = NodePath("../HealthComponent")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
-position = Vector3(0, 3.6, 0)
+position = Vector3(0, 0.62, 0)
 shape = SubResource("BoxShape3D_hurt")
 
 [node name="Hitbox" type="Area3D" parent="."]
 collision_layer = 0
 collision_mask = 8
 script = ExtResource("6_hitbox")
-damage = 6
-tick_interval = 0.6
+damage = 1
+tick_interval = 0.7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
-position = Vector3(0, 2.9, 0)
+position = Vector3(0, 0.5, 0)
 shape = SubResource("SphereShape3D_hit")
 
 [node name="HealthBar" type="Node3D" parent="." node_paths=PackedStringArray("health")]
-position = Vector3(0, 7.75, 0)
+position = Vector3(0, 1.45, 0)
 script = ExtResource("7_bar")
 health = NodePath("../HealthComponent")
-width = 4.5
-height = 0.3

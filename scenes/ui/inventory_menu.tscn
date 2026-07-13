@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dqwu21v5c0w12"]
+[gd_scene load_steps=3 format=3 uid="uid://dqwu21v5c0w12"]
 
 [ext_resource type="Script" path="res://scenes/ui/inventory_menu.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/inventory_frame.png" id="2_frame"]
@@ -54,3 +54,15 @@ offset_right = 165.0
 offset_bottom = 277.0
 theme_override_constants/separation = 6
 alignment = 1
+
+[node name="SkillsButton" type="Button" parent="Root"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = 176.0
+offset_right = 60.0
+offset_bottom = 204.0
+text = "⚙ Skills"

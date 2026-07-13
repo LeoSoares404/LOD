@@ -15,11 +15,13 @@ func _ready() -> void:
 	_test_arrow_aims_at_direction()
 	_test_orb_stays_billboard()
 	_test_orb_explodes_at_half_screen()
-	_test_orb_deals_one_damage_instance()
+	_test_orb_always_explodes()
 	_test_melee_hits_only_the_mouse_arc()
 	_test_scythe_sweeps_the_damage_cone()
 	_test_attack_cooldowns()
+	_test_orb_charge_stages()
 	_test_wave_upgrades()
+	_test_xp_levels_up()
 	_test_poison_damage_is_percent_of_max_health()
 	_test_poison_icon_follows_debuff()
 	_test_player_damage_always_pops_a_number()
@@ -89,18 +91,13 @@ func _test_orb_explodes_at_half_screen() -> void:
 	_check(arrow._range > MagicBolt.ORB_RANGE, "a flecha deveria alcançar mais que o orbe")
 	arrow.queue_free()
 
-	# piso de 1: o dano é int, um estouro de 1 não pode virar acerto direto de 0
-	_check(maxi(1, roundi(1 * MagicBolt.DIRECT_HIT_RATIO)) == 1, "acerto direto nunca pode dar 0")
 
-
-## Uma instância de dano só: acertou o inimigo em cheio, NÃO estoura. Só quem
-## chega ao fim do voo (ou bate na parede) estoura.
-func _test_orb_deals_one_damage_instance() -> void:
+## O orbe estoura ao encostar em qualquer coisa — o estouro é o único dano do AA.
+func _test_orb_always_explodes() -> void:
 	var orb: MagicBolt = BOLT.instantiate()
 	add_child(orb)
-	_check(orb.will_explode(), "orbe intacto deveria estourar no fim do voo")
-	orb._on_direct_hit(null)  # simula o area_entered num inimigo
-	_check(not orb.will_explode(), "orbe que acertou em cheio NÃO pode também estourar")
+	_check(orb.will_explode(), "orbe do mago deveria sempre estourar")
+	_check(orb.damage == 0, "contato do orbe não fere; o dano é só do estouro")
 	orb.queue_free()
 
 	var arrow: MagicBolt = BOLT.instantiate()
@@ -194,33 +191,45 @@ func _check_scythe(player: Player, arc: float, wave: int) -> void:
 	_check(is_equal_approx(reach, radius), "a foice não alcança o raio inteiro do dano")
 
 
-## Cada onda melhora o auto-attack: lutador +2 de dano e +20% de cone, arqueiro
-## +1 flecha, mago estouro maior. Onda 1 é a base (nível 0).
+## Cada nível melhora o auto-attack: lutador +2 de dano e +20% de cone, arqueiro
+## +1 flecha, mago estouro maior. Nível 1 é a base (bônus 0).
 func _test_wave_upgrades() -> void:
 	var player: Player = PLAYER.instantiate()
 	add_child(player)
 
-	GameState.current_wave = 1
-	_check(player._melee_damage() == Player.MELEE_DAMAGE, "onda 1 deveria ser o dano base")
-	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG), "onda 1 = cone base")
-	_check(player._arrow_count() == 1, "onda 1 = uma flecha só")
-	_check(is_equal_approx(player._explosion_scale(), 1.0), "onda 1 = estouro base")
+	GameState.level = 1
+	_check(player._melee_damage() == Player.MELEE_DAMAGE, "nível 1 deveria ser o dano base")
+	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG), "nível 1 = cone base")
+	_check(player._arrow_count() == 1, "nível 1 = uma flecha só")
+	_check(is_equal_approx(player._explosion_scale(), 1.0), "nível 1 = estouro base")
 
-	GameState.current_wave = 2
-	_check(player._melee_damage() == Player.MELEE_DAMAGE + 2, "onda 2 deveria dar +2 de dano")
-	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG * 1.2), "onda 2 = +20% de cone")
-	_check(player._arrow_count() == 2, "onda 2 = duas flechas lado a lado")
-	_check(player._explosion_scale() > 1.0, "onda 2 = estouro maior")
+	GameState.level = 2
+	_check(player._melee_damage() == Player.MELEE_DAMAGE + 2, "nível 2 deveria dar +2 de dano")
+	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG * 1.2), "nível 2 = +20% de cone")
+	_check(player._arrow_count() == 2, "nível 2 = duas flechas lado a lado")
+	_check(player._explosion_scale() > 1.0, "nível 2 = estouro maior")
 
-	GameState.current_wave = 4
-	_check(player._melee_damage() == Player.MELEE_DAMAGE + 6, "onda 4 = +6 de dano (3 ondas)")
-	_check(player._arrow_count() == 4, "onda 4 = quatro flechas")
+	GameState.level = 4
+	_check(player._melee_damage() == Player.MELEE_DAMAGE + 6, "nível 4 = +6 de dano (3 níveis)")
+	_check(player._arrow_count() == 4, "nível 4 = quatro flechas")
 	_check(player._melee_arc_deg() <= 360.0, "o cone não pode passar de 360°")
 
-	GameState.current_wave = 0  # antes da 1ª onda ainda é a base, não pode dar negativo
-	_check(player._melee_damage() == Player.MELEE_DAMAGE, "sem onda, dano base")
-	_check(player._arrow_count() == 1, "sem onda, uma flecha")
+	GameState.level = 1
 	player.queue_free()
+
+
+## XP acumula e sobe de nível quantas vezes couber num único ganho grande.
+func _test_xp_levels_up() -> void:
+	GameState.level = 1
+	GameState.xp = 0
+	GameState.add_xp(1)  # threshold do nível 1 é 6
+	_check(GameState.level == 1, "1 de XP não sobe de nível")
+	GameState.add_xp(GameState.xp_to_next() - GameState.xp)  # completa o nível
+	_check(GameState.level == 2, "completar o threshold sobe pro nível 2")
+	GameState.add_xp(100)  # ganho enorme sobe vários níveis de uma vez
+	_check(GameState.level > 3, "um ganho grande de XP deve subir vários níveis")
+	GameState.level = 1
+	GameState.xp = 0
 
 
 ## Arqueiro 2x mais rápido que o mago; lutador 2x mais lento.
@@ -228,6 +237,19 @@ func _test_attack_cooldowns() -> void:
 	var cd: Dictionary = Player.ATTACK_COOLDOWN
 	_check(is_equal_approx(cd["arqueiro"], cd["mago"] / 2.0), "arqueiro deveria atacar 2x mais rápido")
 	_check(is_equal_approx(cd["lutador"], cd["mago"] * 2.0), "lutador deveria atacar 2x mais lento")
+
+
+## Orbe carregável: 3 estágios discretos de 1.5s. Estágio N = N× (máx 3×);
+## carga parcial não sobe de estágio e passar de 4.5s trava no 3º.
+func _test_orb_charge_stages() -> void:
+	var player: Player = PLAYER.instantiate()
+	add_child(player)
+	_check(player._orb_charge_stage(0.0) == 1, "toque (0s) = estágio 1 (dano base)")
+	_check(player._orb_charge_stage(1.49) == 1, "carga parcial não sobe de estágio")
+	_check(player._orb_charge_stage(1.5) == 2, "1.5s = estágio 2")
+	_check(player._orb_charge_stage(3.0) == 3, "3.0s = estágio 3 (3×, o máximo)")
+	_check(player._orb_charge_stage(9.0) == 3, "passar de 4.5s trava no estágio 3")
+	player.queue_free()
 
 
 ## Veneno tira 2% da vida máxima por tick, com piso de 1 (o dano é int).

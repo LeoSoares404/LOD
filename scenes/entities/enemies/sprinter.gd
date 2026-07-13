@@ -16,6 +16,8 @@ const ANIM_FPS := 10.0  # anima mais rápido que o ghoul, combina com a velocida
 
 var _knockback := Vector3.ZERO
 var _stun_time := 0.0
+var _slow_time := 0.0
+var _slow_factor := 0.0
 var _anim_time := 0.0
 
 @onready var _sprite: Sprite3D = $Sprite
@@ -33,6 +35,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _slow_time > 0.0:
+		_slow_time -= delta
 	# atordoado: não persegue, só sofre o resíduo do empurrão
 	if _stun_time > 0.0:
 		_stun_time -= delta
@@ -48,7 +52,7 @@ func _physics_process(delta: float) -> void:
 		var to_player := _player.global_position - global_position
 		to_player.y = 0.0
 		if to_player.length() > STOP_DISTANCE:
-			chase = to_player.normalized() * SPEED
+			chase = to_player.normalized() * SPEED * _slow_mult()
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector3.ZERO, KNOCKBACK_DECAY * delta)
 	move_and_slide()
@@ -69,6 +73,14 @@ func _animate(delta: float, walking: bool) -> void:
 func _on_hit_received(hitbox: HitboxComponent) -> void:
 	if hitbox.stun_duration > 0.0:
 		_stun_time = hitbox.stun_duration
+	if hitbox.slow_duration > 0.0:
+		if _slow_time <= 0.0:
+			_slow_factor = 0.0  # slow anterior expirou: recomeça a pilha
+		_slow_time = hitbox.slow_duration  # renova a duração
+		if hitbox.slow_stacks:
+			_slow_factor = minf(_slow_factor + hitbox.slow_factor, 0.9)  # empilha (máx 90%)
+		else:
+			_slow_factor = hitbox.slow_factor  # renova, não acumula (rapiera)
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT  # tom azul estável enquanto atordoado
 	else:
@@ -79,11 +91,16 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		away.y = 0.0
 		_knockback = away.normalized() * hitbox.knockback_force
 
-	# mostra número de dano
-	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
-	dmg_num.text = "-%d" % hitbox.damage
-	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 1.9, 0)
-	get_tree().current_scene.add_child(dmg_num)
+	# mostra número de dano (hits de dano 0, como slow puro da rapiera, não mostram)
+	if hitbox.damage > 0:
+		var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+		dmg_num.text = "-%d" % hitbox.damage
+		dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 1.9, 0)
+		get_tree().current_scene.add_child(dmg_num)
+
+
+func _slow_mult() -> float:
+	return 1.0 - _slow_factor if _slow_time > 0.0 else 1.0
 
 
 func _on_died() -> void:

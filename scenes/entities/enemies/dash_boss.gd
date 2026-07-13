@@ -21,6 +21,11 @@ const TELEGRAPH_WIDTH := 0.9   # m (era 14 px)
 const FLOAT_AMP := 0.19
 const FLOAT_SPEED := 3.2
 
+# frames do spritesheet (boss2.png): 0=costas · 1=frente · 2=lado (flip_h p/ esquerda)
+const FRAME_BACK := 0
+const FRAME_FRONT := 1
+const FRAME_SIDE := 2
+
 const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
 
 @onready var health: HealthComponent = $HealthComponent
@@ -30,6 +35,8 @@ const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
 var _player: Node3D
 var _knockback := Vector3.ZERO
 var _stun_time := 0.0
+var _slow_time := 0.0
+var _slow_factor := 0.0
 var _anim_time := 0.0
 var _base_spr_pos: Vector3
 var _base_spr_scale: Vector3
@@ -49,6 +56,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _slow_time > 0.0:
+		_slow_time -= delta
 	if _stun_time > 0.0:
 		_stun_time -= delta
 		if _stun_time <= 0.0:
@@ -84,6 +93,19 @@ func _physics_process(delta: float) -> void:
 	# flutuação contínua — paira acima da base
 	_anim_time += delta
 	_sprite.position.y = _base_spr_pos.y + absf(sin(_anim_time * FLOAT_SPEED)) * FLOAT_AMP
+	_update_facing()
+
+
+## Escolhe o frame (costas/frente/lado) pela direção dominante do movimento;
+## parado (telegraph/recover), mantém o último frame.
+func _update_facing() -> void:
+	if absf(velocity.x) < 0.05 and absf(velocity.z) < 0.05:
+		return
+	if absf(velocity.x) > absf(velocity.z):
+		_sprite.frame = FRAME_SIDE
+		_sprite.flip_h = velocity.x < 0
+	else:
+		_sprite.frame = FRAME_BACK if velocity.z < 0 else FRAME_FRONT
 
 
 func _do_chase(delta: float) -> void:
@@ -92,7 +114,7 @@ func _do_chase(delta: float) -> void:
 		chase = _player.global_position - global_position
 		chase.y = 0.0
 		if chase.length() > 0.1:
-			chase = chase.normalized() * CHASE_SPEED
+			chase = chase.normalized() * CHASE_SPEED * _slow_mult()
 	velocity = chase + _knockback
 	_knockback = _knockback.move_toward(Vector3.ZERO, KNOCKBACK_DECAY * delta)
 	move_and_slide()
@@ -166,6 +188,14 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		if is_instance_valid(_telegraph):
 			_telegraph.queue_free()
 			_telegraph = null
+	if hitbox.slow_duration > 0.0:
+		if _slow_time <= 0.0:
+			_slow_factor = 0.0  # slow anterior expirou: recomeça a pilha
+		_slow_time = hitbox.slow_duration  # renova a duração
+		if hitbox.slow_stacks:
+			_slow_factor = minf(_slow_factor + hitbox.slow_factor, 0.9)  # empilha (máx 90%)
+		else:
+			_slow_factor = hitbox.slow_factor  # renova, não acumula (rapiera)
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT
 	else:
@@ -176,10 +206,16 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 		away.y = 0.0
 		_knockback = away.normalized() * hitbox.knockback_force * KNOCKBACK_RESIST
 
-	var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
-	dmg_num.text = "-%d" % hitbox.damage
-	dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
-	get_tree().current_scene.add_child(dmg_num)
+	# hits de dano 0 (slow puro da rapiera) não mostram número
+	if hitbox.damage > 0:
+		var dmg_num = DAMAGE_NUMBER_SCENE.instantiate()
+		dmg_num.text = "-%d" % hitbox.damage
+		dmg_num.position = global_position + Vector3(randf_range(-0.6, 0.6), 7.2, 0)
+		get_tree().current_scene.add_child(dmg_num)
+
+
+func _slow_mult() -> float:
+	return 1.0 - _slow_factor if _slow_time > 0.0 else 1.0
 
 
 func _on_died() -> void:

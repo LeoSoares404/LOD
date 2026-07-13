@@ -12,4 +12,6 @@ signal hit_received(hitbox: HitboxComponent)
 func take_hit(hitbox: HitboxComponent) -> void:
 	if health:
 		health.take_damage(hitbox.damage)
+		if hitbox.fire_damage > 0:
+			health.apply_fire(hitbox.fire_damage, false)  # debuff "pegando fogo"
 	hit_received.emit(hitbox)
