@@ -74,8 +74,13 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 	if hitbox.stun_duration > 0.0:
 		_stun_time = hitbox.stun_duration
 	if hitbox.slow_duration > 0.0:
-		_slow_time = hitbox.slow_duration  # renova a duração (não acumula)
-		_slow_factor = hitbox.slow_factor
+		if _slow_time <= 0.0:
+			_slow_factor = 0.0  # slow anterior expirou: recomeça a pilha
+		_slow_time = hitbox.slow_duration  # renova a duração
+		if hitbox.slow_stacks:
+			_slow_factor = minf(_slow_factor + hitbox.slow_factor, 0.9)  # empilha (máx 90%)
+		else:
+			_slow_factor = hitbox.slow_factor  # renova, não acumula (rapiera)
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT  # tom azul estável enquanto atordoado
 	else:

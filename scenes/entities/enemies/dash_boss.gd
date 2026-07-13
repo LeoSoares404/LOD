@@ -21,6 +21,11 @@ const TELEGRAPH_WIDTH := 0.9   # m (era 14 px)
 const FLOAT_AMP := 0.19
 const FLOAT_SPEED := 3.2
 
+# frames do spritesheet (boss2.png): 0=costas · 1=frente · 2=lado (flip_h p/ esquerda)
+const FRAME_BACK := 0
+const FRAME_FRONT := 1
+const FRAME_SIDE := 2
+
 const DAMAGE_NUMBER_SCENE := preload("res://scenes/fx/damage_number.tscn")
 
 @onready var health: HealthComponent = $HealthComponent
@@ -88,6 +93,19 @@ func _physics_process(delta: float) -> void:
 	# flutuação contínua — paira acima da base
 	_anim_time += delta
 	_sprite.position.y = _base_spr_pos.y + absf(sin(_anim_time * FLOAT_SPEED)) * FLOAT_AMP
+	_update_facing()
+
+
+## Escolhe o frame (costas/frente/lado) pela direção dominante do movimento;
+## parado (telegraph/recover), mantém o último frame.
+func _update_facing() -> void:
+	if absf(velocity.x) < 0.05 and absf(velocity.z) < 0.05:
+		return
+	if absf(velocity.x) > absf(velocity.z):
+		_sprite.frame = FRAME_SIDE
+		_sprite.flip_h = velocity.x < 0
+	else:
+		_sprite.frame = FRAME_BACK if velocity.z < 0 else FRAME_FRONT
 
 
 func _do_chase(delta: float) -> void:
@@ -171,8 +189,13 @@ func _on_hit_received(hitbox: HitboxComponent) -> void:
 			_telegraph.queue_free()
 			_telegraph = null
 	if hitbox.slow_duration > 0.0:
-		_slow_time = hitbox.slow_duration  # renova a duração (não acumula)
-		_slow_factor = hitbox.slow_factor
+		if _slow_time <= 0.0:
+			_slow_factor = 0.0  # slow anterior expirou: recomeça a pilha
+		_slow_time = hitbox.slow_duration  # renova a duração
+		if hitbox.slow_stacks:
+			_slow_factor = minf(_slow_factor + hitbox.slow_factor, 0.9)  # empilha (máx 90%)
+		else:
+			_slow_factor = hitbox.slow_factor  # renova, não acumula (rapiera)
 	if _stun_time > 0.0:
 		_sprite.modulate = STUN_TINT
 	else:

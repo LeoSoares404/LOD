@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_attack_cooldowns()
 	_test_orb_charge_stages()
 	_test_wave_upgrades()
+	_test_xp_levels_up()
 	_test_poison_damage_is_percent_of_max_health()
 	_test_poison_icon_follows_debuff()
 	_test_player_damage_always_pops_a_number()
@@ -190,33 +191,45 @@ func _check_scythe(player: Player, arc: float, wave: int) -> void:
 	_check(is_equal_approx(reach, radius), "a foice não alcança o raio inteiro do dano")
 
 
-## Cada onda melhora o auto-attack: lutador +2 de dano e +20% de cone, arqueiro
-## +1 flecha, mago estouro maior. Onda 1 é a base (nível 0).
+## Cada nível melhora o auto-attack: lutador +2 de dano e +20% de cone, arqueiro
+## +1 flecha, mago estouro maior. Nível 1 é a base (bônus 0).
 func _test_wave_upgrades() -> void:
 	var player: Player = PLAYER.instantiate()
 	add_child(player)
 
-	GameState.current_wave = 1
-	_check(player._melee_damage() == Player.MELEE_DAMAGE, "onda 1 deveria ser o dano base")
-	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG), "onda 1 = cone base")
-	_check(player._arrow_count() == 1, "onda 1 = uma flecha só")
-	_check(is_equal_approx(player._explosion_scale(), 1.0), "onda 1 = estouro base")
+	GameState.level = 1
+	_check(player._melee_damage() == Player.MELEE_DAMAGE, "nível 1 deveria ser o dano base")
+	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG), "nível 1 = cone base")
+	_check(player._arrow_count() == 1, "nível 1 = uma flecha só")
+	_check(is_equal_approx(player._explosion_scale(), 1.0), "nível 1 = estouro base")
 
-	GameState.current_wave = 2
-	_check(player._melee_damage() == Player.MELEE_DAMAGE + 2, "onda 2 deveria dar +2 de dano")
-	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG * 1.2), "onda 2 = +20% de cone")
-	_check(player._arrow_count() == 2, "onda 2 = duas flechas lado a lado")
-	_check(player._explosion_scale() > 1.0, "onda 2 = estouro maior")
+	GameState.level = 2
+	_check(player._melee_damage() == Player.MELEE_DAMAGE + 2, "nível 2 deveria dar +2 de dano")
+	_check(is_equal_approx(player._melee_arc_deg(), Player.MELEE_ARC_DEG * 1.2), "nível 2 = +20% de cone")
+	_check(player._arrow_count() == 2, "nível 2 = duas flechas lado a lado")
+	_check(player._explosion_scale() > 1.0, "nível 2 = estouro maior")
 
-	GameState.current_wave = 4
-	_check(player._melee_damage() == Player.MELEE_DAMAGE + 6, "onda 4 = +6 de dano (3 ondas)")
-	_check(player._arrow_count() == 4, "onda 4 = quatro flechas")
+	GameState.level = 4
+	_check(player._melee_damage() == Player.MELEE_DAMAGE + 6, "nível 4 = +6 de dano (3 níveis)")
+	_check(player._arrow_count() == 4, "nível 4 = quatro flechas")
 	_check(player._melee_arc_deg() <= 360.0, "o cone não pode passar de 360°")
 
-	GameState.current_wave = 0  # antes da 1ª onda ainda é a base, não pode dar negativo
-	_check(player._melee_damage() == Player.MELEE_DAMAGE, "sem onda, dano base")
-	_check(player._arrow_count() == 1, "sem onda, uma flecha")
+	GameState.level = 1
 	player.queue_free()
+
+
+## XP acumula e sobe de nível quantas vezes couber num único ganho grande.
+func _test_xp_levels_up() -> void:
+	GameState.level = 1
+	GameState.xp = 0
+	GameState.add_xp(1)  # threshold do nível 1 é 6
+	_check(GameState.level == 1, "1 de XP não sobe de nível")
+	GameState.add_xp(GameState.xp_to_next() - GameState.xp)  # completa o nível
+	_check(GameState.level == 2, "completar o threshold sobe pro nível 2")
+	GameState.add_xp(100)  # ganho enorme sobe vários níveis de uma vez
+	_check(GameState.level > 3, "um ganho grande de XP deve subir vários níveis")
+	GameState.level = 1
+	GameState.xp = 0
 
 
 ## Arqueiro 2x mais rápido que o mago; lutador 2x mais lento.

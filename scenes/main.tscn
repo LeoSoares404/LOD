@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/gems_system.tscn" id="9_gems"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings_menu.tscn" id="10_settings"]
 [ext_resource type="PackedScene" path="res://scenes/entities/door.tscn" id="11_door"]
+[ext_resource type="PackedScene" path="res://scenes/ui/stats_menu.tscn" id="12_stats"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -62,6 +63,8 @@ script = ExtResource("5_wave")
 [node name="GemsSystem" parent="." instance=ExtResource("9_gems")]
 
 [node name="SettingsMenu" parent="." instance=ExtResource("10_settings")]
+
+[node name="StatsMenu" parent="." instance=ExtResource("12_stats")]
 
 [node name="ExitDoor" parent="." instance=ExtResource("11_door")]
 position = Vector3(33, 0, 13)

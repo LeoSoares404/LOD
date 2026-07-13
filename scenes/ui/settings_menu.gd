@@ -71,5 +71,8 @@ func _on_scheme_toggled(pressed: bool, scheme: String) -> void:
 		GameState.control_scheme = scheme
 
 
+## Volta ao menu principal. Recarregar a cena reseta a fase (WaveManager zera
+## current_wave), mas o nível/XP ficam no GameState e são mantidos.
 func _on_quit_pressed() -> void:
-	get_tree().quit()
+	get_tree().paused = false  # o pause é do tree e sobrevive à troca de cena
+	get_tree().change_scene_to_file.call_deferred("res://scenes/ui/main_menu.tscn")

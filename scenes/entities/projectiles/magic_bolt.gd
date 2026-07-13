@@ -21,16 +21,24 @@ const EXPLOSION_DAMAGE := 6  # golpe cheio do mago, entregue pelo estouro (valor
 const TRAIL_STEP := 0.5  # m entre um rastro e o outro
 const TRAIL_FADE := 0.28  # s até o rastro sumir
 
-# veneno (dardo da zarabatana): dano por tempo que continua mesmo com o dardo
-# já desfeito — por isso os ticks rodam soltos (await), não presos ao nó.
-const POISON_DAMAGE := 1
-const POISON_TICKS := 3
-const POISON_TICK_INTERVAL := 1.0
+# dano-base por tick dos debuffs da zarabatana (o Player soma o bônus de nível). O
+# tempo/stacks/espalhamento moram no HealthComponent do alvo (vive além do dardo).
+const POISON_DAMAGE := 2
+const FIRE_DAMAGE := 2
+# cor por debuff: recolore o dardo e os números dos ticks (feedback do efeito).
+const DEBUFF_COLORS := {
+	"veneno": Color(0.5, 2.4, 0.6),    # verde tóxico
+	"lentidao": Color(0.6, 1.4, 3.0),  # azul gelo
+	"fogo": Color(3.0, 1.4, 0.5),      # laranja quente
+}
 
 var direction := Vector3.RIGHT
 ## Definidos pelo Player ANTES do add_child (o _ready lê pra montar o visual).
 var is_arrow := false
-var applies_poison := false  # dardo da zarabatana
+var debuff := ""             # "veneno" | "lentidao" | "fogo" (dardo da zarabatana; "" = nenhum)
+var poison_dmg := POISON_DAMAGE  # dano/tick do veneno (Player soma o bônus de nível)
+var poison_max_stacks := 5       # limite de stacks do veneno (Player: +1 a cada 2 níveis)
+var fire_dmg := FIRE_DAMAGE      # dano/tick do fogo
 var pierce := 0              # nº de inimigos que a flecha atravessa antes de sumir
 var explosion_scale := 1.0  # cresce por onda (só o orbe do mago)
 var explosion_damage := EXPLOSION_DAMAGE  # sobrescrito pelo orbe carregado e pela luva
@@ -68,21 +76,18 @@ func will_explode() -> bool:
 ## com pierce sobrando, a flecha atravessa o inimigo e segue; senão, some.
 func _on_arrow_hit(area: Area3D) -> void:
 	if area is HurtboxComponent:
-		if applies_poison and area.health:
-			_apply_poison(area.health)
+		# lentidão vai pela própria hitbox (slow_factor/duration/stacks). Veneno e
+		# fogo são dano-por-tempo aplicados soltos no HealthComponent do alvo.
+		# veneno/fogo: DoT preso ao HealthComponent do alvo (vive com o inimigo; o
+		# dardo some no impacto). A lentidão já foi pela hitbox (slow_* + slow_stacks).
+		if area.health:
+			match debuff:
+				"veneno": area.health.apply_poison(poison_dmg, poison_max_stacks)  # empilha até o limite
+				"fogo": area.health.apply_fire(fire_dmg, true)      # 1 stack, espalha aos vizinhos
 		if pierce > 0:
 			pierce -= 1
 			return  # atravessa: continua voando (não estoura, não some)
 	_vanish()
-
-
-## Ticks soltos (não presos ao dardo, que já vai sumir): seguem batendo no alvo
-## mesmo depois do impacto, até acabar ou o alvo morrer/sumir.
-func _apply_poison(target: HealthComponent) -> void:
-	for _tick in POISON_TICKS:
-		await get_tree().create_timer(POISON_TICK_INTERVAL).timeout
-		if is_instance_valid(target) and target.health > 0:
-			target.take_damage(POISON_DAMAGE)
 
 
 ## Orbe do mago: esfera de energia em 3 camadas — halo roxo difuso atrás, o
@@ -145,6 +150,13 @@ func _become_arrow() -> void:
 	var light: OmniLight3D = $Light
 	light.light_color = Color(1.0, 0.85, 0.45)
 	light.omni_range = 2.5
+
+	# dardo da zarabatana: recolore a flecha pela cor do debuff que vai aplicar
+	if debuff != "":
+		var col: Color = DEBUFF_COLORS.get(debuff, Color.WHITE)
+		spr.modulate = col
+		tip.modulate = col.lightened(0.35)
+		light.light_color = Color(col.r, col.g, col.b)
 
 
 func _physics_process(delta: float) -> void:
